@@ -1,0 +1,129 @@
+---
+import type { ComponentProps } from "astro/types";
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Img from "@/components/media/Img.astro";
+import background from "@/assets/images/home/hero-background.png";
+
+type Props = Pick<ComponentProps<typeof Section>, "render">;
+
+const { render = true, ...rest } = Astro.props;
+---
+
+<Section
+  render={render}
+  theme="dark"
+  paddingTop="small"
+  paddingBottom="none"
+  class="hero-home_wrap"
+  containerClass="hero-home_content"
+  {...rest}
+>
+  <div slot="background" class="hero-home_media">
+    <Img
+      class="hero-home_image"
+      src={background}
+      width={1440}
+      height={910}
+      loading="eager"
+      fetchPriority="high"
+      quality="high"
+    />
+    <div class="hero-home_shade-top"></div>
+    <div class="hero-home_shade-bottom"></div>
+  </div>
+  <Heading tag="h1" variant="display" class="hero-home_title">
+    The Platform<br />Supply Chains Decide On
+  </Heading>
+  <Paragraph variant="large" class="hero-home_text">
+    Forget what legacy tech tells you is possible. Your Decisions. Your
+    Solutions. Real AI. No Compromise
+  </Paragraph>
+</Section>
+
+<style is:global>
+  @layer components {
+    .hero-home_wrap {
+      --_shadow: rgb(0 0 0 / 0.22);
+      justify-content: start;
+      height: clamp(36rem, 63.2vw, 56.875rem);
+      overflow: clip;
+    }
+
+    .hero-home_content {
+      gap: var(--space-3);
+      padding-inline: var(--space-3);
+    }
+
+    .hero-home_media > * {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hero-home_image {
+      object-position: 50% 100%;
+    }
+
+    /* Darkens the top behind the headline, as the overlay layer in Figma */
+    .hero-home_shade-top {
+      height: 60.77%;
+      top: -1%;
+      mix-blend-mode: overlay;
+      background-image: linear-gradient(
+        0deg,
+        rgb(13 13 13 / 0) 0%,
+        rgb(13 13 13 / 0.16) 19.5%,
+        rgb(13 13 13 / 0.3) 42.4%,
+        rgb(13 13 13 / 0.38) 60.9%,
+        rgb(13 13 13 / 0.4) 80.5%
+      );
+    }
+
+    /* Fades the image into the next section */
+    .hero-home_shade-bottom {
+      top: 73.96%;
+      height: 32.3%;
+      background-image: linear-gradient(
+        180deg,
+        rgb(13 13 13 / 0) 0%,
+        rgb(13 13 13 / 0.4) 19.5%,
+        rgb(13 13 13 / 0.74) 42.4%,
+        rgb(13 13 13 / 0.94) 60.9%,
+        rgb(13 13 13) 80.5%
+      );
+    }
+
+    .hero-home_title {
+      text-shadow:
+        0 0.25rem 8.75rem var(--_shadow),
+        0 0.25rem 8.75rem rgb(0 0 0 / 0.18),
+        0 0.25rem 8.75rem rgb(0 0 0 / 0.24);
+    }
+
+    .hero-home_text {
+      max-width: 41rem;
+      color: var(--text-2);
+      text-shadow: 0 0.25rem 8.75rem var(--_shadow);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .hero-home_title,
+      .hero-home_text {
+        animation: hero-home-fade 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .hero-home_text {
+        animation-delay: 0.15s;
+      }
+    }
+
+    @keyframes hero-home-fade {
+      from {
+        opacity: 0;
+        transform: translateY(1rem);
+      }
+    }
+  }
+</style>
