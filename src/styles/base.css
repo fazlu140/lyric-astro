@@ -17,6 +17,7 @@
   --plum-10: #f5f3f6;
   --plum-200: #8f759d;
   --plum-400: #735385;
+  --plum-500: #5c426a;
   --plum-dark: #482664;
   --blue-500: #2424f5;
   --brand-500: var(--plum-400);
@@ -70,7 +71,7 @@
 
   /* Max width */
   --max-width-small: 70rem;
-  --max-width-main: calc(var(--viewport-max) / 16 * 1rem);
+  --max-width-main: 82rem;
   --max-width-full: 100%;
 
   /* Nav */
@@ -290,7 +291,7 @@
   --button-background: var(--black);
   --button-border: var(--button-background);
   --button-text: var(--white);
-  --button-background-hover: var(--plum-400);
+  --button-background-hover: var(--plum-500);
   --button-border-hover: var(--button-background-hover);
   --button-text-hover: var(--white);
 
@@ -326,9 +327,9 @@
   --button-background: var(--white);
   --button-border: var(--button-background);
   --button-text: var(--black);
-  --button-background-hover: var(--plum-10);
+  --button-background-hover: var(--plum-500);
   --button-border-hover: var(--button-background-hover);
-  --button-text-hover: var(--black);
+  --button-text-hover: var(--white);
 
   --button-2-background: transparent;
   --button-2-border: var(--text);
@@ -361,9 +362,9 @@
   --button-background: var(--white);
   --button-border: var(--button-background);
   --button-text: var(--black);
-  --button-background-hover: var(--plum-10);
+  --button-background-hover: var(--plum-500);
   --button-border-hover: var(--button-background-hover);
-  --button-text-hover: var(--black);
+  --button-text-hover: var(--white);
 
   --button-2-background: transparent;
   --button-2-border: var(--text);

@@ -6,6 +6,7 @@ import close from "@/assets/icons/close.svg";
 import play from "@/assets/icons/play.svg";
 import pause from "@/assets/icons/pause.svg";
 import { slotContent } from "@/utils/slots.ts";
+import { shuffledOrder } from "@/utils/shuffle.ts";
 
 type Emphasis = "primary" | "secondary";
 
@@ -106,6 +107,7 @@ const {
 } = Astro.props as AllProps;
 
 const isLink = element === "link";
+const hasFill = variant === "main" || variant === "arrow";
 const Tag = isLink ? "a" : "button";
 const tagAttrs = isLink
   ? { href: href || "#" }
@@ -115,6 +117,12 @@ const marks = { play, close, arrow };
 /* main and link are written, the rest are marks with a label. */
 const isWritten = variant === "main" || variant === "link";
 const content = isWritten ? await slotContent(Astro.slots) : "";
+
+/* Pixel fill: cells reveal in a shuffled order on hover. The order is
+   decided once at build time, so the effect ships no JavaScript. */
+const FILL_COLUMNS = 10;
+const FILL_ROWS = 3;
+const fillOrder = shuffledOrder(FILL_COLUMNS * FILL_ROWS);
 
 const named = {
   play: pressed ? "Pause" : "Play",
@@ -138,6 +146,13 @@ const named = {
       {...tagAttrs}
       {...rest}
     >
+      {hasFill && (
+        <span class="button_fill" aria-hidden="true">
+          {fillOrder.map((order) => (
+            <span style={`--_order: ${order}`} />
+          ))}
+        </span>
+      )}
       {isWritten && (
         <span class="button_text text-style-trim">
           <Fragment set:html={content} />
@@ -161,7 +176,37 @@ const named = {
 
 <style is:global>
   @layer components {
+    .button_fill {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      pointer-events: none;
+      & > span {
+        background-color: var(--button-background-hover);
+        box-shadow: 0 0 0 0.03125rem var(--button-background-hover);
+        opacity: 0;
+        transition: opacity 0.12s ease calc(var(--_order) * 6ms);
+      }
+    }
+
+    @media (hover: hover) {
+      .button_wrap:hover:not(:disabled) .button_fill > span {
+        opacity: 1;
+        transition-delay: calc(var(--_order) * 8ms);
+      }
+    }
+
+    .button_wrap:focus-visible .button_fill > span {
+      opacity: 1;
+    }
+
     .button_wrap {
+      position: relative;
+      isolation: isolate;
+      overflow: clip;
       display: inline-flex;
       justify-content: center;
       align-items: center;
@@ -187,6 +232,16 @@ const named = {
           background-color: var(--button-background-hover);
           color: var(--button-text-hover);
           border-color: var(--button-border-hover);
+        }
+      }
+      &:has(.button_fill) {
+        transition:
+          color var(--hover-duration) var(--hover-ease) 0.12s,
+          border-color var(--hover-duration) var(--hover-ease) 0.12s;
+        @media (hover: hover) {
+          &:hover:not(:disabled) {
+            background-color: var(--button-background);
+          }
         }
       }
       &.secondary {
