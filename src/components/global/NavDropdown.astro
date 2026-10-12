@@ -1,0 +1,297 @@
+---
+import Icon from "@/components/media/Icon.astro";
+import chevron from "@/assets/icons/chevron-down.svg";
+import caret from "@/assets/icons/caret-right.svg";
+import type { SvgComponent } from "astro/types";
+
+export type NavDropdownItem = {
+  label: string;
+  description: string;
+  href: string;
+  icon: SvgComponent;
+  tag?: string;
+};
+
+interface Props {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Trigger text. */
+  label: string;
+  /** Small heading above the links. */
+  eyebrow?: string;
+  /** Link groups, separated by a divider. */
+  groups: NavDropdownItem[][];
+}
+
+const { render = true, label, eyebrow, groups } = Astro.props;
+const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+---
+
+{
+  render && groups.length > 0 && (
+    <li class="nav_dd_wrap">
+      <button
+        class="nav_link nav_dd_toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls={id}
+      >
+        {label}
+        <Icon class="nav_dd_chevron" src={chevron} variant="small" />
+      </button>
+      <div class="nav_dd_panel" id={id}>
+        <div class="nav_dd_clip">
+          <div class="nav_dd_inner theme-light">
+            {eyebrow && <p class="nav_dd_eyebrow text-style-mono">{eyebrow}</p>}
+            {groups.map((group) => (
+              <ul class="nav_dd_list">
+                {group.map((item) => (
+                  <li>
+                    <a class="nav_dd_link" href={item.href}>
+                      <span class="nav_dd_icon">
+                        <Icon src={item.icon} />
+                      </span>
+                      <span class="nav_dd_content">
+                        <span class="nav_dd_title">
+                          {item.label}
+                          {item.tag && <span class="nav_dd_tag">{item.tag}</span>}
+                        </span>
+                        <span class="nav_dd_text">{item.description}</span>
+                      </span>
+                      <Icon class="nav_dd_caret" src={caret} variant="small" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ))}
+          </div>
+        </div>
+      </div>
+    </li>
+  )
+}
+
+<script>
+  const desktop = window.matchMedia("(width >= 72rem) and (hover: hover)");
+
+  for (const wrap of document.querySelectorAll<HTMLElement>(".nav_dd_wrap")) {
+    const toggle = wrap.querySelector<HTMLButtonElement>(".nav_dd_toggle");
+    if (!toggle) continue;
+    let closeTimer: number | undefined;
+
+    const setOpen = (open: boolean) => {
+      window.clearTimeout(closeTimer);
+      wrap.classList.toggle("open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+    };
+
+    toggle.addEventListener("click", () => {
+      setOpen(toggle.getAttribute("aria-expanded") !== "true");
+    });
+
+    /* Hover intent: open at once, close after a short grace period so the
+       pointer can travel from the toggle into the panel. */
+    wrap.addEventListener("pointerenter", (event) => {
+      if (desktop.matches && event.pointerType === "mouse") setOpen(true);
+    });
+    wrap.addEventListener("pointerleave", (event) => {
+      if (!desktop.matches || event.pointerType !== "mouse") return;
+      closeTimer = window.setTimeout(() => setOpen(false), 160);
+    });
+
+    wrap.addEventListener("focusout", (event) => {
+      const next = event.relatedTarget;
+      if (!(next instanceof Node) || !wrap.contains(next)) setOpen(false);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && wrap.classList.contains("open")) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+
+    desktop.addEventListener("change", () => setOpen(false));
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    .nav_dd_toggle {
+      font: inherit;
+      letter-spacing: inherit;
+    }
+
+    .nav_dd_chevron.icon {
+      --_size: 1rem;
+      transition: rotate var(--open-duration) var(--open-ease);
+    }
+
+    .nav_dd_wrap.open .nav_dd_chevron {
+      rotate: -180deg;
+    }
+
+    /* Mobile: an accordion inside the menu */
+    .nav_dd_panel {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows var(--open-duration) var(--open-ease);
+    }
+
+    .nav_dd_wrap.open .nav_dd_panel {
+      grid-template-rows: 1fr;
+    }
+
+    .nav_dd_clip {
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .nav_dd_inner {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      margin-bottom: var(--space-3);
+      padding: var(--space-3);
+      border: var(--border-width) solid var(--border);
+    }
+
+    .nav_dd_eyebrow {
+      color: var(--plum-400);
+      font-size: var(--text-small);
+      line-height: 1.43;
+    }
+
+    .nav_dd_list {
+      display: grid;
+      gap: var(--space-3) 1.75rem;
+      & + .nav_dd_list {
+        padding-top: var(--space-4);
+        border-top: var(--border-width) solid var(--border);
+      }
+    }
+
+    .nav_dd_link {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding-block: 0.125rem;
+      color: var(--text);
+      letter-spacing: normal;
+      transition: background-color var(--hover-duration) var(--hover-ease);
+      @media (hover: hover) {
+        &:hover {
+          background-color: var(--plum-10);
+          & .nav_dd_caret {
+            translate: -0.25rem 0;
+          }
+        }
+      }
+      &:focus-visible {
+        outline-offset: var(--focus-offset-inner);
+      }
+    }
+
+    .nav_dd_icon {
+      display: flex;
+      flex: none;
+      align-items: center;
+      justify-content: center;
+      width: 3rem;
+      height: 3rem;
+      border: var(--border-width) solid var(--border);
+      background-color: var(--plum-10);
+      & .icon {
+        --_size: 1.5rem;
+      }
+    }
+
+    .nav_dd_content {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .nav_dd_title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--text-main);
+      font-weight: var(--primary-medium);
+      line-height: 1.5;
+    }
+
+    .nav_dd_tag {
+      padding: 0.25rem;
+      background-color: var(--plum-400);
+      color: var(--white);
+      font-size: 0.75rem;
+      line-height: 1;
+      letter-spacing: var(--letter-spacing-tight);
+    }
+
+    .nav_dd_text {
+      color: var(--text-2);
+      font-size: var(--text-small);
+      line-height: 1.43;
+    }
+
+    .nav_dd_caret.icon {
+      --_size: 1rem;
+      margin-left: auto;
+      transition: translate var(--hover-duration) var(--hover-ease);
+    }
+
+    /* Desktop: a floating panel under the bar */
+    @media (width >= 72rem) {
+      .nav_dd_wrap {
+        display: flex;
+        align-items: center;
+        align-self: stretch;
+      }
+
+      .nav_dd_panel {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1;
+        width: 60rem;
+        max-width: calc(100vw - 20rem);
+        display: block;
+        visibility: hidden;
+        opacity: 0;
+        translate: 0 -0.5rem;
+        transition:
+          opacity var(--open-duration) var(--open-ease),
+          translate var(--open-duration) var(--open-ease),
+          visibility 0s linear var(--open-duration);
+      }
+
+      .nav_dd_wrap.open .nav_dd_panel {
+        visibility: visible;
+        opacity: 1;
+        translate: 0 0;
+        transition:
+          opacity var(--open-duration) var(--open-ease),
+          translate var(--open-duration) var(--open-ease),
+          visibility 0s;
+      }
+
+      .nav_dd_clip {
+        overflow: visible;
+      }
+
+      .nav_dd_inner {
+        gap: var(--space-4);
+        margin: 0;
+        padding: var(--space-4);
+        border-top: 0;
+        box-shadow: 0 1.5rem 3rem rgb(13 13 13 / 0.12);
+      }
+
+      .nav_dd_list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  }
+</style>
