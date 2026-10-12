@@ -41,7 +41,7 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
       </button>
       <div class="nav_dd_panel" id={id}>
         <div class="nav_dd_clip">
-          <div class="nav_dd_inner theme-light">
+          <div class="nav_dd_inner">
             {eyebrow && <p class="nav_dd_eyebrow text-style-mono">{eyebrow}</p>}
             {groups.map((group) => (
               <ul class="nav_dd_list">
@@ -118,12 +118,13 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 <style is:global>
   @layer components {
     .nav_dd_toggle {
+      justify-content: space-between;
       font: inherit;
       letter-spacing: inherit;
     }
 
     .nav_dd_chevron.icon {
-      --_size: 1rem;
+      --_size: 1.25rem;
       transition: rotate var(--open-duration) var(--open-ease);
     }
 
@@ -151,13 +152,11 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
       display: flex;
       flex-direction: column;
       gap: var(--space-4);
-      margin-bottom: var(--space-3);
-      padding: var(--space-3);
-      border: var(--border-width) solid var(--border);
+      padding-bottom: var(--space-5);
     }
 
     .nav_dd_eyebrow {
-      color: var(--plum-400);
+      color: var(--heading-accent);
       font-size: var(--text-small);
       line-height: 1.43;
     }
@@ -181,7 +180,7 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
       transition: background-color var(--hover-duration) var(--hover-ease);
       @media (hover: hover) {
         &:hover {
-          background-color: var(--plum-10);
+          background-color: var(--_item-hover, var(--background-2));
           & .nav_dd_caret {
             translate: -0.25rem 0;
           }
@@ -200,7 +199,7 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
       width: 3rem;
       height: 3rem;
       border: var(--border-width) solid var(--border);
-      background-color: var(--plum-10);
+      background-color: var(--_icon-background, var(--background-2));
       & .icon {
         --_size: 1.5rem;
       }
@@ -210,6 +209,11 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
       display: flex;
       flex-direction: column;
       min-width: 0;
+    }
+
+    .nav_dd_list {
+      font-size: var(--text-main);
+      line-height: 1.5;
     }
 
     .nav_dd_title {
@@ -250,6 +254,14 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
         align-self: stretch;
       }
 
+      .nav_dd_toggle {
+        justify-content: flex-start;
+      }
+
+      .nav_dd_chevron.icon {
+        --_size: 1rem;
+      }
+
       .nav_dd_panel {
         position: absolute;
         top: 100%;
@@ -281,10 +293,20 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
         overflow: visible;
       }
 
+      /* Light panel over the dark bar */
       .nav_dd_inner {
+        --background: var(--white);
+        --text: var(--black);
+        --text-2: var(--grey-500);
+        --border: var(--grey-80);
+        --heading-accent: var(--plum-400);
+        --_icon-background: var(--plum-10);
+        --_item-hover: var(--plum-10);
         gap: var(--space-4);
-        margin: 0;
         padding: var(--space-4);
+        background-color: var(--background);
+        color: var(--text);
+        border: var(--border-width) solid var(--border);
         border-top: 0;
         box-shadow: 0 1.5rem 3rem rgb(13 13 13 / 0.12);
       }

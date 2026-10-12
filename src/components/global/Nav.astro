@@ -133,11 +133,14 @@ const links: { label: string; href: string; badge?: string }[] = [
       display: none;
     }
     .nav_menu {
-      grid-template-rows: 1fr;
+      position: static;
+      height: auto;
       visibility: visible;
+      clip-path: none;
     }
-    .nav_menu_inner {
+    .nav_links > li {
       opacity: 1;
+      translate: none;
     }
   </style>
 </noscript>
@@ -293,49 +296,73 @@ const links: { label: string; href: string; badge?: string }[] = [
       }
     }
 
+    /* Mobile: a full-height panel that wipes down from the bar */
     .nav_menu {
       position: absolute;
       top: 100%;
       inset-inline: 0;
-      display: grid;
-      grid-template-rows: 0fr;
-      visibility: hidden;
-      max-height: calc(100svh - var(--nav-height));
-      overflow-x: clip;
+      height: calc(100svh - var(--nav-height));
       overflow-y: auto;
       overscroll-behavior: contain;
+      visibility: hidden;
       background-color: var(--background);
-      border-bottom: var(--border-width) solid var(--border);
+      clip-path: inset(0 0 100% 0);
       transition:
-        grid-template-rows var(--open-duration) var(--open-ease),
-        visibility var(--open-duration) var(--open-ease);
+        clip-path var(--_menu-duration) var(--_menu-ease),
+        visibility 0s linear var(--_menu-duration);
     }
 
-    .nav_menu_inner {
-      overflow: hidden;
-      opacity: 0;
-      transition: opacity var(--open-duration) var(--open-ease);
+    .nav_wrap {
+      --_menu-duration: 0.5s;
+      --_menu-ease: cubic-bezier(0.65, 0, 0.35, 1);
     }
 
     .nav_wrap.open .nav_menu {
-      grid-template-rows: 1fr;
       visibility: visible;
+      clip-path: inset(0);
+      transition:
+        clip-path var(--_menu-duration) var(--_menu-ease),
+        visibility 0s;
     }
 
-    .nav_wrap.open .nav_menu_inner {
-      opacity: 1;
-      overflow-y: auto;
+    html:has(.nav_wrap.open) {
+      overflow: hidden;
+    }
+
+    .nav_menu_inner {
+      min-height: 100%;
     }
 
     .nav_links {
       display: flex;
       flex-direction: column;
-      padding: var(--space-2) calc(var(--site-margin) + var(--space-3))
-        var(--space-4);
-      font-size: var(--text-main);
-      & > li + li {
-        border-top: var(--border-width) solid var(--border);
+      padding: var(--space-4) calc(var(--site-margin) + var(--space-3))
+        var(--space-8);
+      font-size: 1.5rem;
+      font-weight: var(--primary-medium);
+      line-height: 1.2;
+      & > li {
+        border-bottom: var(--border-width) solid var(--border);
+        opacity: 0;
+        translate: 0 0.75rem;
+        transition:
+          opacity 0.3s var(--hover-ease),
+          translate 0.3s var(--hover-ease);
       }
+      & > li:nth-child(2) { --_i: 1; }
+      & > li:nth-child(3) { --_i: 2; }
+      & > li:nth-child(4) { --_i: 3; }
+      & > li:nth-child(5) { --_i: 4; }
+      & > li:nth-child(6) { --_i: 5; }
+    }
+
+    .nav_wrap.open .nav_links > li {
+      opacity: 1;
+      translate: 0 0;
+      transition:
+        opacity 0.5s var(--hover-ease) calc(0.15s + var(--_i, 0) * 50ms),
+        translate 0.5s cubic-bezier(0.22, 1, 0.36, 1)
+          calc(0.15s + var(--_i, 0) * 50ms);
     }
 
     .nav_link {
@@ -344,7 +371,7 @@ const links: { label: string; href: string; badge?: string }[] = [
       align-items: center;
       gap: var(--space-2);
       width: 100%;
-      padding-block: var(--space-3);
+      padding-block: var(--space-4);
       color: var(--plum-10);
       letter-spacing: var(--letter-spacing-tight);
       text-decoration: none;
@@ -370,6 +397,7 @@ const links: { label: string; href: string; badge?: string }[] = [
 
     .nav_badge {
       padding: 0.25rem;
+      font-size: var(--text-small);
       background-color: var(--blue-500);
       font-weight: var(--primary-medium);
       line-height: 1;
@@ -399,9 +427,11 @@ const links: { label: string; href: string; badge?: string }[] = [
         inset: auto;
         align-self: stretch;
         display: flex;
-        max-height: none;
+        height: auto;
         overflow: visible;
         visibility: visible;
+        clip-path: none;
+        transition: none;
         margin-right: auto;
         background-color: transparent;
         border-bottom: 0;
@@ -420,10 +450,18 @@ const links: { label: string; href: string; badge?: string }[] = [
         padding: 0;
         gap: var(--space-2);
         font-size: var(--text-small);
+        font-weight: var(--primary-regular);
         line-height: 1.5714;
-        & > li + li {
-          border-top: 0;
+        & > li {
+          border-bottom: 0;
+          opacity: 1;
+          translate: none;
+          transition: none;
         }
+      }
+
+      html:has(.nav_wrap.open) {
+        overflow: visible;
       }
 
       .nav_link {
