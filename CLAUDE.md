@@ -27,7 +27,7 @@ This workspace can't download from figma.com, so asset URLs from `get_design_con
 | --- | --- | --- | --- | --- |
 | 1 | Nav | `5405:8099` | — | built |
 | 2 | Hero | `5405:8122` | Text fades in. **Video replaces the static image.** | built (image, video pending) |
-| 3 | Logo strip | `5405:8131` (logos `5536:18950`, `7758:2967`) | Logos loop continuously and seamlessly. | |
+| 3 | Logo strip | `5405:8131` (logos `7758:2967`, 24 logos) | Logos loop continuously and seamlessly. | built (1x logos, 2x/SVG pending) |
 | 4 | Supply Chains Run on Decisions | `5405:8144` (states `6826:268`…) | Scroll reveals the words one at a time; background swaps to the matching image/video. | |
 | 5 | Meet Your Mesh | `5405:8326` + `5451:1494` | Animation from client slides + Slack video (ask Fazlu for them). | |
 | 6 | One platform. Four layers. | `5405:9391` | — | |
@@ -80,6 +80,10 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 - Dropdown items: background turns plum-10 and the caret nudges 4px left.
 - Logo: fades to 60%.
 
+**Text reveals:** `reveal="lines" | "words" | "chars"` (and `revealDelay`) on `Heading` and `Paragraph` splits the text with GSAP SplitText and fades each part up 0.6em. No overflow mask, so nothing is clipped. Above the fold it plays on load, below it on scroll (ScrollTrigger, once). `utility/Reveal.astro` (in the layout) imports GSAP only when the page has a reveal; with reduced motion the text just shows. Never use a top-level `await` in a component script: Astro bundles a page's scripts into one module, so it would delay every other script.
+
+**Mobile menu:** full-height dark panel that wipes down from the bar, 24px links staggering in, Resource Hub as an accordion in the dark theme, page scroll locked while open.
+
 **Nav dropdown** (`NavDropdown.astro`): Resource Hub mega menu, content copied from the live site (Figma has no design for it). Opens on hover with a short close delay on desktop, on click or Enter everywhere, closes on Escape or when focus leaves. The page behind blurs. In the mobile menu it becomes an accordion.
 
 **Section borders:** `<Section borders="top" | "sides" | "both">` draws the full-width divider and the two rails with pseudo-elements, so they add no markup (the live site uses 5 divs per section). With side rails on, content is inset 40px (`--space-6`) from them, as in Figma.
@@ -114,6 +118,9 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 ## Still open
 
 - General Sans font files are a stand-in from a public GitHub mirror. Replace with the official Fontshare files (or the ones from the Webflow project) before launch.
+- Client logos are 1x crops from a Figma screenshot (40px tall, soft on retina). Fazlu to export the 24 logo frames from `7758:2967` as 2x PNG or SVG into `src/assets/logos/clients/` with the same file names.
+- Logo strip padding is 60px top and bottom (no token, kept as `3.75rem`). The marquee pauses on hover; its pause button only shows on keyboard focus since the design has none.
+- Hero headline now waits for GSAP to reveal it, which may cost a little LCP. Revisit when measuring Lighthouse.
 - Hero image is a 1x export (1440 wide). Swap for the hero **video** when Fazlu has it.
 - Dropdown has no Figma design; layout and copy follow the live site. Confirm with the designer.
 - Nav gaps are 28px (logo, divider, links). Not a token; kept as `1.75rem`.

@@ -1,9 +1,21 @@
 ---
 import Layout from "@/layouts/BaseLayout.astro";
+import Section from "@/components/wrapper/Section.astro";
 import HeroHome from "@/components/section/HeroHome.astro";
+import LogoMarquee from "@/components/content/LogoMarquee.astro";
 ---
 
 <Layout theme="dark">
   {/* Hero */}
   <HeroHome />
+
+  {/* Logos */}
+  <Section
+    theme="dark"
+    borders="both"
+    paddingTop="none"
+    paddingBottom="none"
+  >
+    <LogoMarquee />
+  </Section>
 </Layout>

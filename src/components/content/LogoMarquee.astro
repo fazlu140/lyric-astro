@@ -1,0 +1,121 @@
+---
+import Marquee from "@/components/interactive/Marquee.astro";
+import Img from "@/components/media/Img.astro";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+/* Client logos, in order. File names carry the order and the slug. */
+const names: Record<string, string> = {
+  "suntory-global-spirits": "Suntory Global Spirits",
+  westrock: "WestRock",
+  "estee-lauder": "Estée Lauder",
+  "krispy-kreme": "Krispy Kreme",
+  "beyond-better-foods": "Beyond Better Foods",
+  bcg: "BCG",
+  "coca-cola-consolidated": "Coca-Cola Consolidated",
+  "kuehne-nagel": "Kuehne+Nagel",
+  bodyarmor: "BodyArmor",
+  wayfair: "Wayfair",
+  "beam-suntory": "Beam Suntory",
+  petco: "Petco",
+  "owens-and-minor": "Owens & Minor",
+  "treehouse-foods": "TreeHouse Foods",
+  "bob-evans-farms": "Bob Evans Farms",
+  wesco: "Wesco",
+  niagara: "Niagara",
+  google: "Google",
+  "five-below": "Five Below",
+  exol: "Exol",
+  elf: "e.l.f.",
+  "acco-brands": "ACCO Brands",
+  "mondelez-international": "Mondelēz International",
+  lowes: "Lowe's",
+};
+
+const files = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/logos/clients/*.{png,svg,webp}",
+  { eager: true },
+);
+
+const logos = Object.entries(files)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([path, module]) => {
+    const slug = path.split("/").pop()!.replace(/^\d+-|\.\w+$/g, "");
+    return { src: module.default, alt: names[slug] ?? slug };
+  });
+---
+
+{
+  render && logos.length > 0 && (
+    <div class="logo-marquee_wrap">
+      <Marquee label="Companies that decide on Lyric">
+        {logos.map((logo) => (
+          <Img
+            src={logo.src}
+            alt={logo.alt}
+            variant="densities"
+            height={40}
+            transparent
+          />
+        ))}
+      </Marquee>
+    </div>
+  )
+}
+
+<style is:global>
+  @layer components {
+    /* Runs rail to rail, past the section's content inset */
+    .logo-marquee_wrap {
+      width: calc(100% + var(--space-6) * 2);
+      margin-inline: calc(var(--space-6) * -1);
+      padding-block: 3.75rem;
+
+      & .marquee_wrap {
+        --_gap-size: var(--space-8);
+        --_item-height: 2.5rem;
+        --_speed: 2.5s;
+        position: relative;
+      }
+
+      /* Pauses under the pointer, so a logo can be read */
+      @media (hover: hover) {
+        & .marquee_wrap:hover .marquee_track {
+          animation-play-state: paused;
+        }
+      }
+
+      /* The pause control stays for keyboard users and appears on focus;
+         the design has no visible control. */
+      & .marquee_toggle:not(:focus-visible) {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      & .marquee_toggle:focus-visible {
+        position: absolute;
+        right: 0;
+      }
+
+      & .marquee_viewport {
+        mask-image: linear-gradient(
+          to right,
+          transparent,
+          black 8%,
+          black 92%,
+          transparent
+        );
+      }
+    }
+  }
+</style>
