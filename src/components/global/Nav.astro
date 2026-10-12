@@ -1,7 +1,9 @@
 ---
 import Icon from "@/components/media/Icon.astro";
 import NavLink from "@/components/global/NavLink.astro";
+import Button from "@/components/Button.astro";
 import logo from "@/assets/logo/logo.svg";
+import chevron from "@/assets/icons/chevron-down.svg";
 import { SITE_NAME } from "@/consts.ts";
 
 interface Props {
@@ -12,32 +14,57 @@ interface Props {
 }
 
 const { render = true, overlap = false } = Astro.props;
+
+const links: { label: string; href: string; menu?: boolean; badge?: string }[] =
+  [
+    { label: "Platform", href: "/platform" },
+    { label: "Solutions", href: "/solutions" },
+    { label: "Resource Hub", href: "/resources", menu: true },
+    { label: "Customer Stories", href: "/customer-stories" },
+    { label: "About", href: "/about" },
+    { label: "Empower Chicago", href: "/empower-chicago", badge: "2026" },
+  ];
 ---
 
 {
   render && (
-    <header class:list={["nav_wrap", overlap && "overlap"]}>
+    <header class:list={["nav_wrap", "theme-dark", overlap && "overlap"]}>
       <div class="nav_inner">
-        <a class="nav_logo" href="/" aria-label={SITE_NAME}>
-          <Icon src={logo} variant="full-width" />
-        </a>
-        <button
-          class="nav_toggle"
-          type="button"
-          aria-label="Menu"
-          aria-expanded="false"
-          aria-controls="nav-menu"
-        >
-          <span class="nav_toggle_icon" />
-        </button>
+        <div class="nav_start">
+          <a class="nav_logo" href="/" aria-label={SITE_NAME}>
+            <Icon src={logo} variant="full-width" />
+          </a>
+          <span class="nav_divider" aria-hidden="true" />
+        </div>
         <nav class="nav_menu" id="nav-menu" aria-label="Main">
           <div class="nav_menu_inner">
             <ul class="nav_links">
-              <NavLink href="/">Home</NavLink>
-              <NavLink href="/example-components">Example Components</NavLink>
+              {links.map((link) => (
+                <NavLink href={link.href}>
+                  {link.label}
+                  {link.menu && (
+                    <Icon class="nav_chevron" src={chevron} variant="small" />
+                  )}
+                  {link.badge && <span class="nav_badge">{link.badge}</span>}
+                </NavLink>
+              ))}
             </ul>
           </div>
         </nav>
+        <div class="nav_end">
+          <Button element="link" href="/demo" class="nav_button">
+            Get Started
+          </Button>
+          <button
+            class="nav_toggle"
+            type="button"
+            aria-label="Menu"
+            aria-expanded="false"
+            aria-controls="nav-menu"
+          >
+            <span class="nav_toggle_icon" />
+          </button>
+        </div>
       </div>
     </header>
   )
@@ -91,7 +118,7 @@ const { render = true, overlap = false } = Astro.props;
     });
 
     window
-      .matchMedia("(width >= 48rem)")
+      .matchMedia("(width >= 72rem)")
       .addEventListener("change", (event) => {
         if (event.matches) setOpen(false);
       });
@@ -106,7 +133,7 @@ const { render = true, overlap = false } = Astro.props;
       z-index: 100;
       display: flex;
       justify-content: center;
-      padding-inline: var(--site-margin);
+      padding-inline: calc(var(--site-margin) + var(--space-3));
       background-color: var(--background);
       color: var(--text);
       border-bottom: var(--border-width) solid var(--border);
@@ -120,28 +147,45 @@ const { render = true, overlap = false } = Astro.props;
     .nav_inner {
       width: 100%;
       max-width: var(--max-width-main);
+      min-height: var(--nav-height);
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 0 var(--space-6);
+      gap: 1.75rem;
     }
 
-    /* Bar height */
-    .nav_logo,
-    .nav_toggle {
-      min-height: var(--nav-height);
+    .nav_start {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+      margin-right: auto;
     }
 
     .nav_logo {
       display: flex;
       align-items: center;
-      width: 6.5rem;
+      width: 4.8125rem;
       transition: opacity var(--hover-duration) var(--hover-ease);
       @media (hover: hover) {
         &:hover {
           opacity: 0.6;
         }
       }
+      & .icon {
+        aspect-ratio: 77 / 24;
+      }
+    }
+
+    .nav_divider {
+      display: none;
+      width: var(--border-width);
+      height: 1.875rem;
+      background-color: var(--border);
+    }
+
+    .nav_end {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
     }
 
     .nav_toggle {
@@ -151,9 +195,9 @@ const { render = true, overlap = false } = Astro.props;
       align-items: center;
       justify-content: center;
       min-width: 2.75rem;
+      min-height: 2.75rem;
       margin-right: calc((2.75rem - var(--_icon-width)) / -2);
       color: inherit;
-      border-radius: var(--radius-small);
       transition: opacity var(--hover-duration) var(--hover-ease);
       @media (hover: hover) {
         &:hover {
@@ -230,41 +274,65 @@ const { render = true, overlap = false } = Astro.props;
     .nav_links {
       display: flex;
       flex-direction: column;
-      padding: var(--space-2) var(--site-margin) var(--space-4);
+      padding: var(--space-2) calc(var(--site-margin) + var(--space-3))
+        var(--space-4);
       font-size: var(--text-main);
-      font-weight: var(--primary-medium);
       & > li + li {
         border-top: var(--border-width) solid var(--border);
       }
     }
 
     .nav_link {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
       padding-block: var(--space-3);
-      color: color-mix(in lab, currentcolor 60%, transparent);
+      color: var(--plum-10);
+      letter-spacing: var(--letter-spacing-tight);
       text-decoration: none;
-      text-underline-offset: 0.4em;
-      text-decoration-thickness: var(--border-width);
-      transition: color var(--hover-duration) var(--hover-ease);
-      &[aria-current="page"] {
-        color: var(--text);
-      }
+      transition: opacity var(--hover-duration) var(--hover-ease);
       @media (hover: hover) {
         &:hover {
-          color: var(--text);
+          opacity: 0.7;
         }
       }
     }
 
-    @media (width >= 48rem) {
+    .nav_chevron.icon {
+      --_size: 1rem;
+    }
+
+    .nav_badge {
+      padding: 0.25rem;
+      background-color: var(--blue-500);
+      font-weight: var(--primary-medium);
+      line-height: 1;
+      text-box: trim-both cap alphabetic;
+    }
+
+    @media (width >= 72rem) {
       .nav_toggle {
         display: none;
+      }
+
+      .nav_divider {
+        display: block;
+      }
+
+      .nav_logo {
+        box-sizing: content-box;
+        padding-inline: var(--space-4);
+      }
+
+      .nav_start {
+        margin-right: 0;
       }
 
       .nav_menu {
         position: static;
         display: block;
         visibility: visible;
+        margin-right: auto;
         background-color: transparent;
         border-bottom: 0;
       }
@@ -276,21 +344,19 @@ const { render = true, overlap = false } = Astro.props;
 
       .nav_links {
         flex-direction: row;
-        flex-wrap: wrap;
         align-items: center;
         padding: 0;
-        gap: var(--space-4);
+        gap: var(--space-2);
         font-size: var(--text-small);
+        line-height: 1.5714;
         & > li + li {
           border-top: 0;
         }
       }
 
       .nav_link {
-        padding-block: 0;
-        &[aria-current="page"] {
-          text-decoration: underline;
-        }
+        padding: 0.25rem;
+        gap: var(--space-2);
       }
     }
   }
