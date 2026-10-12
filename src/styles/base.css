@@ -52,13 +52,21 @@
   --focus-offset: 0.1827rem;
   --focus-offset-inner: calc(var(--focus-width) * -1);
 
+  /* Motion: one place to retime the whole site. GSAP reads its values from
+     src/utils/motion.ts, which mirrors these. */
+  --motion-fast: 200ms;
+  --motion-base: 400ms;
+  --motion-slow: 800ms;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
   /* Hover motion */
-  --hover-duration: 200ms;
+  --hover-duration: var(--motion-fast);
   --hover-ease: ease;
 
   /* Opening motion */
-  --open-duration: var(--hover-duration);
-  --open-ease: var(--hover-ease);
+  --open-duration: var(--motion-base);
+  --open-ease: var(--motion-ease-out);
 
   /* Radius */
   --radius-small: 0.25rem;
@@ -66,7 +74,7 @@
   --radius-round: 100vw;
 
   /* Fluid scale range */
-  --viewport-min: 320;
+  --viewport-min: 375;
   --viewport-max: 1440;
 
   /* Max width */
@@ -79,7 +87,7 @@
 
   /* Typography styles */
   --display: clamp(var(--display-min) / 16 * 1rem, ((var(--display-min) - ((var(--display-max) - var(--display-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--display-max) - var(--display-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--display-max) / 16 * 1rem);
-  --display-min: 40;
+  --display-min: 36;
   --display-max: 62;
   --display-line-height: var(--line-height-medium);
   --display-letter-spacing: var(--letter-spacing-normal);
@@ -93,7 +101,7 @@
   --display-text-wrap: balance;
 
   --h1: clamp(var(--h1-min) / 16 * 1rem, ((var(--h1-min) - ((var(--h1-max) - var(--h1-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--h1-max) - var(--h1-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--h1-max) / 16 * 1rem);
-  --h1-min: 36;
+  --h1-min: 34;
   --h1-max: 56;
   --h1-line-height: 1.07;
   --h1-letter-spacing: var(--letter-spacing-normal);
@@ -191,7 +199,7 @@
   --text-large-text-wrap: pretty;
 
   --text-main: clamp(var(--text-main-min) / 16 * 1rem, ((var(--text-main-min) - ((var(--text-main-max) - var(--text-main-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--text-main-max) - var(--text-main-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--text-main-max) / 16 * 1rem);
-  --text-main-min: 15;
+  --text-main-min: 16;
   --text-main-max: 16;
   --text-main-line-height: var(--line-height-huge);
   --text-main-letter-spacing: var(--letter-spacing-normal);
@@ -228,6 +236,14 @@
   --site-gutter-max: 32;
 
   --site-width: calc(100% - var(--site-margin) * 2);
+
+  /* Distance from the rails to the content inside them */
+  --content-inset: clamp(var(--content-inset-min) / 16 * 1rem, ((var(--content-inset-min) - ((var(--content-inset-max) - var(--content-inset-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--content-inset-max) - var(--content-inset-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--content-inset-max) / 16 * 1rem);
+  --content-inset-min: 16;
+  --content-inset-max: 40;
+
+  /* Nav and hero sit just inside the rails */
+  --edge-inset: 1rem;
 
   /* Spacing */
   --space-1: clamp(var(--space-1-min) / 16 * 1rem, ((var(--space-1-min) - ((var(--space-1-max) - var(--space-1-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--space-1-max) - var(--space-1-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--space-1-max) / 16 * 1rem);

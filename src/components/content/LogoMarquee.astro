@@ -72,8 +72,8 @@ const logos = Object.entries(files)
   @layer components {
     /* Runs rail to rail, past the section's content inset */
     .logo-marquee_wrap {
-      width: calc(100% + var(--space-6) * 2);
-      margin-inline: calc(var(--space-6) * -1);
+      width: calc(100% + var(--content-inset) * 2);
+      margin-inline: calc(var(--content-inset) * -1);
       padding-block: 3.75rem;
 
       & .marquee_wrap {
