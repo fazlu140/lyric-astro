@@ -13,15 +13,41 @@ export default defineConfig({
   ],
   fonts: [
     {
-      name: "Inter",
-      cssVariable: "--font-inter",
+      name: "General Sans",
+      cssVariable: "--font-general-sans",
       provider: fontProviders.local(),
+      fallbacks: ["system-ui", "sans-serif"],
       options: {
         variants: [
           {
             weight: 400,
             style: "normal",
-            src: ["./src/assets/fonts/inter-regular.woff2"],
+            src: ["./src/assets/fonts/general-sans-regular.woff2"],
+          },
+          {
+            weight: 500,
+            style: "normal",
+            src: ["./src/assets/fonts/general-sans-medium.woff2"],
+          },
+          {
+            weight: 600,
+            style: "normal",
+            src: ["./src/assets/fonts/general-sans-semibold.woff2"],
+          },
+        ],
+      },
+    },
+    {
+      name: "Chivo Mono",
+      cssVariable: "--font-chivo-mono",
+      provider: fontProviders.local(),
+      fallbacks: ["ui-monospace", "monospace"],
+      options: {
+        variants: [
+          {
+            weight: "100 900",
+            style: "normal",
+            src: ["./src/assets/fonts/chivo-mono-variable.woff2"],
           },
         ],
       },
