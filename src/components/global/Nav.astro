@@ -345,14 +345,15 @@ const links: { label: string; href: string; badge?: string }[] = [
           opacity 0.3s var(--hover-ease),
           translate 0.3s var(--hover-ease);
       }
-      & > li + li {
+      /* of-type, not "li + li": the dropdown's script sits between items */
+      & > li:not(:first-of-type) {
         border-top: var(--border-width) solid var(--border);
       }
-      & > li:nth-child(2) { --_i: 1; }
-      & > li:nth-child(3) { --_i: 2; }
-      & > li:nth-child(4) { --_i: 3; }
-      & > li:nth-child(5) { --_i: 4; }
-      & > li:nth-child(6) { --_i: 5; }
+      & > li:nth-of-type(2) { --_i: 1; }
+      & > li:nth-of-type(3) { --_i: 2; }
+      & > li:nth-of-type(4) { --_i: 3; }
+      & > li:nth-of-type(5) { --_i: 4; }
+      & > li:nth-of-type(6) { --_i: 5; }
     }
 
     .nav_wrap.open .nav_links > li {
@@ -452,7 +453,7 @@ const links: { label: string; href: string; badge?: string }[] = [
         font-weight: var(--primary-regular);
         line-height: 1.5714;
         & > li,
-        & > li + li {
+        & > li:not(:first-of-type) {
           border-top: 0;
           opacity: 1;
           translate: none;
