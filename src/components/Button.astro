@@ -234,13 +234,20 @@ const named = {
           border-color: var(--button-border-hover);
         }
       }
+      /* Pixel fill: the label and border follow the first cells, and the
+         real background settles in after the last one, so no sub-pixel seam
+         between cells can show at any screen scaling. */
       &:has(.button_fill) {
         transition:
           color var(--hover-duration) var(--hover-ease) 0.12s,
-          border-color var(--hover-duration) var(--hover-ease) 0.12s;
+          border-color var(--hover-duration) var(--hover-ease) 0.12s,
+          background-color 0s linear 0s;
         @media (hover: hover) {
           &:hover:not(:disabled) {
-            background-color: var(--button-background);
+            transition:
+              color var(--hover-duration) var(--hover-ease) 0.12s,
+              border-color var(--hover-duration) var(--hover-ease) 0.12s,
+              background-color 0s linear 0.38s;
           }
         }
       }
