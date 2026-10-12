@@ -11,8 +11,12 @@ export const motion = {
   duration: 0.9,
   /** How far things travel as they arrive. */
   distance: "1.5rem",
-  /** How far each line or word rises in a text reveal. */
-  textDistance: "0.6em",
+  /** Text reveals: how far each part rises, easing and length. */
+  text: {
+    y: "0.55em",
+    ease: "power4.out",
+    duration: 1.2,
+  },
   /** Seconds between each item in a group. */
   stagger: { lines: 0.08, words: 0.04, chars: 0.015, items: 0.08 },
   /** When a scroll animation starts: element top reaches 88% down the viewport. */

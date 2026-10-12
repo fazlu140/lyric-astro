@@ -239,11 +239,13 @@
 
   /* Distance from the rails to the content inside them */
   --content-inset: clamp(var(--content-inset-min) / 16 * 1rem, ((var(--content-inset-min) - ((var(--content-inset-max) - var(--content-inset-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--content-inset-max) - var(--content-inset-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--content-inset-max) / 16 * 1rem);
-  --content-inset-min: 16;
+  --content-inset-min: 12;
   --content-inset-max: 40;
 
-  /* Nav and hero sit just inside the rails */
-  --edge-inset: 1rem;
+  /* Nav, hero and full-bleed sections: on the rail line on mobile, 16px in on desktop */
+  --edge-inset: clamp(var(--edge-inset-min) / 16 * 1rem, ((var(--edge-inset-min) - ((var(--edge-inset-max) - var(--edge-inset-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--edge-inset-max) - var(--edge-inset-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--edge-inset-max) / 16 * 1rem);
+  --edge-inset-min: 0;
+  --edge-inset-max: 16;
 
   /* Spacing */
   --space-1: clamp(var(--space-1-min) / 16 * 1rem, ((var(--space-1-min) - ((var(--space-1-max) - var(--space-1-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--space-1-max) - var(--space-1-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--space-1-max) / 16 * 1rem);

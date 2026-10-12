@@ -40,6 +40,7 @@ const { render = true, ...rest } = Astro.props;
     <BackgroundVideo
       class="hero-home_image"
       src="https://lyric-website-files.s3.us-east-1.amazonaws.com/web-media/herocubes.mp4"
+      delay={1600}
     />
     <div class="hero-home_shade-top"></div>
     <div class="hero-home_shade-bottom"></div>
@@ -61,13 +62,13 @@ const { render = true, ...rest } = Astro.props;
 <style is:global>
   @layer components {
     .hero-home_wrap {
-      --_shadow: rgb(0 0 0 / 0.22);
       justify-content: start;
       height: clamp(36rem, 63.2vw, 56.875rem);
       overflow: clip;
     }
 
     .hero-home_content {
+      isolation: isolate;
       gap: var(--space-3);
       padding-inline: var(--edge-inset);
     }
@@ -112,17 +113,24 @@ const { render = true, ...rest } = Astro.props;
       );
     }
 
-    .hero-home_title {
-      text-shadow:
-        0 0.25rem 8.75rem var(--_shadow),
-        0 0.25rem 8.75rem rgb(0 0 0 / 0.18),
-        0 0.25rem 8.75rem rgb(0 0 0 / 0.24);
+    /* Stands in for Figma's 140px text shadow: one static shade behind the
+       copy, so the moving lines carry no shadow to repaint. */
+    .hero-home_content::before {
+      content: "";
+      position: absolute;
+      inset: -40% 10% -60% -20%;
+      z-index: -1;
+      background-image: radial-gradient(
+        closest-side at 40% 50%,
+        rgb(0 0 0 / 0.32),
+        rgb(0 0 0 / 0)
+      );
+      pointer-events: none;
     }
 
     .hero-home_text {
       max-width: 41rem;
       color: var(--text-2);
-      text-shadow: 0 0.25rem 8.75rem var(--_shadow);
     }
   }
 </style>

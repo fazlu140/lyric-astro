@@ -29,55 +29,82 @@
       ? undefined
       : { trigger: el, start: motion.start, once: true };
 
-  const reveals = [...document.querySelectorAll<HTMLElement>("[data-reveal]")];
-  const blocks = [...document.querySelectorAll<HTMLElement>("[data-animate]")];
+  /* Split only once the real fonts are in: splitting in the fallback font
+     and re-splitting when General Sans arrives restarts the animation
+     mid-flight, which reads as lag. Capped so a slow font never blocks. */
+  const fontsReady = Promise.race([
+    document.fonts.ready,
+    new Promise((resolve) => setTimeout(resolve, 1000)),
+  ]);
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
-  if (reducedMotion()) {
-    [...reveals, ...blocks].forEach(done);
-  } else {
-    for (const el of reveals) {
-      const kind = (el.dataset.reveal ?? "lines") as "lines" | "words" | "chars";
-      const delay = Number(el.dataset.revealDelay) || 0;
-      const scrollTrigger = trigger(el);
+  const revealText = (el: HTMLElement) => {
+    const kind = (el.dataset.reveal ?? "lines") as "lines" | "words" | "chars";
+    const delay = Number(el.dataset.revealDelay) || 0;
+    const scrollTrigger = trigger(el);
 
-      SplitText.create(el, {
-        type: kind === "chars" ? "words,chars" : kind,
-        linesClass: "reveal-line",
-        autoSplit: true,
-        onSplit(split) {
-          const parts = split[kind];
-          const tween = gsap.from(parts, {
-            autoAlpha: 0,
-            y: motion.textDistance,
-            force3D: true,
-            stagger: motion.stagger[kind],
-            delay,
-            scrollTrigger,
-          });
-          done(el);
-          return tween;
-        },
-      });
+    SplitText.create(el, {
+      type: kind === "chars" ? "words,chars" : kind,
+      linesClass: "reveal-line",
+      autoSplit: true,
+      onSplit(split) {
+        const parts = split[kind];
+        const tween = gsap.from(parts, {
+          autoAlpha: 0,
+          y: motion.text.y,
+          force3D: true,
+          ease: motion.text.ease,
+          duration: motion.text.duration,
+          stagger: motion.stagger[kind],
+          delay,
+          scrollTrigger,
+          /* Own GPU layer only while moving */
+          onStart: () => gsap.set(parts, { willChange: "transform, opacity" }),
+          onComplete: () => gsap.set(parts, { clearProps: "willChange" }),
+        });
+        done(el);
+        return tween;
+      },
+    });
+  };
+
+  const animateBlock = (el: HTMLElement) => {
+    const preset = presets[el.dataset.animate as MotionPreset] ?? presets["fade-up"];
+    const targets = el.hasAttribute("data-animate-children") ? [...el.children] : el;
+    gsap.from(targets, {
+      ...preset,
+      force3D: true,
+      stagger: motion.stagger.items,
+      delay: Number(el.dataset.animateDelay) || 0,
+      scrollTrigger: trigger(el),
+    });
+    done(el);
+  };
+
+  const start = async () => {
+    const reveals = [...document.querySelectorAll<HTMLElement>("[data-reveal]")];
+    const blocks = [...document.querySelectorAll<HTMLElement>("[data-animate]")];
+
+    if (reducedMotion()) {
+      [...reveals, ...blocks].forEach(done);
+      return;
     }
 
-    for (const el of blocks) {
-      const preset = presets[el.dataset.animate as MotionPreset] ?? presets["fade-up"];
-      const targets = el.hasAttribute("data-animate-children")
-        ? [...el.children]
-        : el;
-      gsap.from(targets, {
-        ...preset,
-        force3D: true,
-        stagger: motion.stagger.items,
-        delay: Number(el.dataset.animateDelay) || 0,
-        scrollTrigger: trigger(el),
-      });
-      done(el);
+    blocks.forEach(animateBlock);
+
+    if (reveals.length) {
+      await fontsReady;
+      /* Let the first frame paint before starting, so the opening frames of
+         the reveal aren't spent waiting on layout. */
+      await nextFrame();
+      reveals.forEach(revealText);
     }
 
     /* Late images and fonts move things down; re-measure once all is in. */
     window.addEventListener("load", () => ScrollTrigger.refresh(), { once: true });
-  }
+  };
+
+  start();
 </script>
 
 <style is:global>

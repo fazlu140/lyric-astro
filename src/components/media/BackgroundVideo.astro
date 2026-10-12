@@ -11,12 +11,21 @@ type Props = Omit<HTMLAttributes<"video">, "src"> & {
    * calls play() and pause(), as a scroll scene does for its active step.
    */
   playback?: "visible" | "manual";
+  /**
+   * Milliseconds after the page has loaded before the video may start, so it
+   * doesn't compete with an intro animation.
+   *
+   * @min 0
+   * @int
+   */
+  delay?: number;
 };
 
 const {
   render = true,
   src,
   playback = "visible",
+  delay,
   class: className,
   ...rest
 } = Astro.props;
@@ -28,6 +37,7 @@ const {
       class:list={["bg-video", className]}
       data-src={src}
       data-playback={playback}
+      data-delay={delay}
       muted
       loop
       playsinline
@@ -72,7 +82,15 @@ const {
       { rootMargin: "50% 0px" },
     );
 
-    videos.forEach((video) => observer.observe(video));
+    const afterLoad = (fn: () => void) =>
+      document.readyState === "complete"
+        ? fn()
+        : window.addEventListener("load", fn, { once: true });
+
+    videos.forEach((video) => {
+      const delay = Number(video.dataset.delay) || 0;
+      afterLoad(() => setTimeout(() => observer.observe(video), delay));
+    });
   }
 </script>
 
