@@ -1,0 +1,98 @@
+---
+/*
+  The site's entrance animations, driven by data attributes so any element
+  can opt in without its own script. Timings and presets live in
+  src/utils/motion.ts.
+
+  data-reveal="lines | words | chars"   split text (set by the `reveal` prop
+                                         on Heading and Paragraph)
+  data-animate="fade-up | fade | …"     animate the element itself
+  data-animate-children                  animate its children one by one instead
+  data-animate-delay="0.2"               seconds before it starts
+
+  Above the fold plays on load; below it plays once on scroll.
+*/
+---
+
+<script is:inline>
+  document.documentElement.classList.add("js");
+</script>
+
+<script>
+  import { gsap, ScrollTrigger, SplitText, reducedMotion } from "@/utils/gsap.ts";
+  import { motion, presets, type MotionPreset } from "@/utils/motion.ts";
+
+  const done = (el: HTMLElement) => el.classList.add("is-animated");
+
+  const trigger = (el: HTMLElement) =>
+    el.getBoundingClientRect().top < window.innerHeight * 0.9
+      ? undefined
+      : { trigger: el, start: motion.start, once: true };
+
+  const reveals = [...document.querySelectorAll<HTMLElement>("[data-reveal]")];
+  const blocks = [...document.querySelectorAll<HTMLElement>("[data-animate]")];
+
+  if (reducedMotion()) {
+    [...reveals, ...blocks].forEach(done);
+  } else {
+    for (const el of reveals) {
+      const kind = (el.dataset.reveal ?? "lines") as "lines" | "words" | "chars";
+      const delay = Number(el.dataset.revealDelay) || 0;
+      const scrollTrigger = trigger(el);
+
+      SplitText.create(el, {
+        type: kind === "chars" ? "words,chars" : kind,
+        linesClass: "reveal-line",
+        autoSplit: true,
+        onSplit(split) {
+          const parts = split[kind];
+          const tween = gsap.from(parts, {
+            autoAlpha: 0,
+            y: motion.textDistance,
+            force3D: true,
+            stagger: motion.stagger[kind],
+            delay,
+            scrollTrigger,
+          });
+          done(el);
+          return tween;
+        },
+      });
+    }
+
+    for (const el of blocks) {
+      const preset = presets[el.dataset.animate as MotionPreset] ?? presets["fade-up"];
+      const targets = el.hasAttribute("data-animate-children")
+        ? [...el.children]
+        : el;
+      gsap.from(targets, {
+        ...preset,
+        force3D: true,
+        stagger: motion.stagger.items,
+        delay: Number(el.dataset.animateDelay) || 0,
+        scrollTrigger: trigger(el),
+      });
+      done(el);
+    }
+
+    /* Late images and fonts move things down; re-measure once all is in. */
+    window.addEventListener("load", () => ScrollTrigger.refresh(), { once: true });
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    /* Hidden only until the script runs; a failed load still shows
+       everything after two seconds. */
+    .js :is([data-reveal], [data-animate]):not(.is-animated) {
+      visibility: hidden;
+      animation: motion-fallback 0s linear 2s forwards;
+    }
+
+    @keyframes motion-fallback {
+      to {
+        visibility: visible;
+      }
+    }
+  }
+</style>
