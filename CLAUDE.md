@@ -73,6 +73,17 @@ These refine the Figma file. Where they conflict with a layer, these win. A home
 
 Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `theme-dark` black / white text / grey-200 muted / grey-800 lines. `theme-brand` plum-dark. Buttons are square (radius 0), Chivo Mono Medium: white on dark, black on light.
 
+**Hover system** (Figma only explores button hovers, so the live site is the reference, rebuilt lighter):
+
+- Primary buttons: a pixel fill. 30 cells reveal in a shuffled order in plum-500 and the label turns white. The order is shuffled at build time in `Button.astro`, so it ships no JavaScript (the live site builds the cells with JS on every page load). Keyboard focus shows the filled state.
+- Nav links: a 1px underline draws in from the left and leaves to the right. The current page and an open dropdown keep it.
+- Dropdown items: background turns plum-10 and the caret nudges 4px left.
+- Logo: fades to 60%.
+
+**Nav dropdown** (`NavDropdown.astro`): Resource Hub mega menu, content copied from the live site (Figma has no design for it). Opens on hover with a short close delay on desktop, on click or Enter everywhere, closes on Escape or when focus leaves. The page behind blurs. In the mobile menu it becomes an accordion.
+
+**Section borders:** `<Section borders="top" | "sides" | "both">` draws the full-width divider and the two rails with pseudo-elements, so they add no markup (the live site uses 5 divs per section). With side rails on, content is inset 40px (`--space-6`) from them, as in Figma.
+
 **Layout:** `--site-margin` max 64px is the page "rail" (the two vertical lines at x=64 and x=1376). Content inside the rails sits 40px further in (`--space-6`). Nav and hero sit 16px in (`--space-3`), at x=80. Nav switches to the desktop bar at `72rem`: seven links plus the button don't fit at the `64rem` Grid breakpoint.
 
 ## Animation and performance
@@ -104,10 +115,10 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 
 - General Sans font files are a stand-in from a public GitHub mirror. Replace with the official Fontshare files (or the ones from the Webflow project) before launch.
 - Hero image is a 1x export (1440 wide). Swap for the hero **video** when Fazlu has it.
-- Nav "Resource Hub" chevron implies a dropdown; no dropdown design read yet (check `6848:633`).
+- Dropdown has no Figma design; layout and copy follow the live site. Confirm with the designer.
 - Nav gaps are 28px (logo, divider, links). Not a token; kept as `1.75rem`.
 - Section headline line heights vary on the page (48/50, 48/52, 48/56). Consolidated to 1.1 for h2.
 - Style guide says headings use -3% letter spacing; the page uses 0. Page followed.
-- Button hover states exist in Figma (`6830:432` "Hover state v1/v2") but aren't read yet; current hover is a guess.
+- Figma button hover explorations (`6830:432` v1: gradient + 6px square marker, v2: invert to white, plus a cursor glow) differ from the live site's pixel fill. Pixel fill chosen; confirm.
 - "Book a Demo" uses JetBrains Mono on the page, every other button uses Chivo Mono. Assumed Chivo Mono.
 - UI mockups in "Control for the Creator" use Host Grotesk and Inter. Ask whether to match those or use General Sans.

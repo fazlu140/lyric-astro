@@ -34,6 +34,8 @@ interface Props extends HTMLAttributes<"section"> {
   align?: "start" | "center" | "end";
   /** Fill the viewport height. */
   fullHeight?: boolean;
+  /** Divider lines: a full-width line on top, rails down the sides at the site margin, or both. */
+  borders?: "none" | "top" | "sides" | "both";
   /** Inner container classes. */
   containerClass?: string;
   /** Inner container attributes. */
@@ -48,6 +50,7 @@ const {
   gap = "8",
   align,
   fullHeight = false,
+  borders = "none",
   containerClass,
   containerAttrs = {},
   class: className,
@@ -78,6 +81,8 @@ const background = await slotContent(Astro.slots, "background");
         padClass("top", paddingTop),
         padClass("bottom", paddingBottom),
         fullHeight && "min-height-screen",
+        (borders === "top" || borders === "both") && "section-border-top",
+        (borders === "sides" || borders === "both") && "section-border-sides",
         theme !== "inherit" && `theme-${theme}`,
         align && `alignment-${align}`,
         className,
@@ -101,3 +106,35 @@ const background = await slotContent(Astro.slots, "background");
     </section>
   )
 }
+
+<style is:global>
+  @layer components {
+    /* Drawn with pseudo-elements, so dividers add no markup */
+    .section-border-top::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      z-index: 1;
+      height: var(--border-width);
+      background-color: var(--border);
+      pointer-events: none;
+    }
+
+    .section-border-sides::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      left: 50%;
+      z-index: 1;
+      width: min(var(--site-width), var(--max-width-main));
+      translate: -50% 0;
+      border-inline: var(--border-width) solid var(--border);
+      pointer-events: none;
+    }
+
+    /* Content sits inside the rails, not on them */
+    .section-border-sides > .container {
+      padding-inline: var(--space-6);
+    }
+  }
+</style>
