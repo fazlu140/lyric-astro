@@ -4,7 +4,14 @@ import Section from "@/components/wrapper/Section.astro";
 import Heading from "@/components/typography/Heading.astro";
 import Paragraph from "@/components/typography/Paragraph.astro";
 import Img from "@/components/media/Img.astro";
-import background from "@/assets/images/home/hero-background.png";
+import BackgroundVideo from "@/components/media/BackgroundVideo.astro";
+import { pickAsset } from "@/utils/assets.ts";
+
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/home/*.{png,jpg,webp,avif}",
+  { eager: true },
+);
+const background = pickAsset(images, "hero-background");
 
 type Props = Pick<ComponentProps<typeof Section>, "render">;
 
@@ -29,6 +36,10 @@ const { render = true, ...rest } = Astro.props;
       loading="eager"
       fetchPriority="high"
       quality="high"
+    />
+    <BackgroundVideo
+      class="hero-home_image"
+      src="https://lyric-website-files.s3.us-east-1.amazonaws.com/web-media/herocubes.mp4"
     />
     <div class="hero-home_shade-top"></div>
     <div class="hero-home_shade-bottom"></div>
@@ -58,7 +69,7 @@ const { render = true, ...rest } = Astro.props;
 
     .hero-home_content {
       gap: var(--space-3);
-      padding-inline: var(--space-3);
+      padding-inline: var(--edge-inset);
     }
 
     .hero-home_media > * {

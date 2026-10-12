@@ -1,0 +1,90 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = Omit<HTMLAttributes<"video">, "src"> & {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Video URL. Omit to render nothing. */
+  src?: string;
+  /**
+   * `visible` plays while on screen. `manual` only loads it; a parent script
+   * calls play() and pause(), as a scroll scene does for its active step.
+   */
+  playback?: "visible" | "manual";
+};
+
+const {
+  render = true,
+  src,
+  playback = "visible",
+  class: className,
+  ...rest
+} = Astro.props;
+---
+
+{
+  render && src && (
+    <video
+      class:list={["bg-video", className]}
+      data-src={src}
+      data-playback={playback}
+      muted
+      loop
+      playsinline
+      preload="none"
+      aria-hidden="true"
+      tabindex="-1"
+      {...rest}
+    />
+  )
+}
+
+<script>
+  /* Sits over a poster image and fades in once it is actually playing, so the
+     image stays the fast first paint. Nothing downloads for people who asked
+     for reduced motion or data saving, or until the video nears the screen. */
+  const quiet =
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+    (navigator as Navigator & { connection?: { saveData?: boolean } })
+      .connection?.saveData === true;
+
+  const videos = [...document.querySelectorAll<HTMLVideoElement>(".bg-video")];
+
+  if (!quiet && videos.length) {
+    const load = (video: HTMLVideoElement) => {
+      if (video.src || !video.dataset.src) return;
+      video.src = video.dataset.src;
+      video.addEventListener("playing", () => video.classList.add("is-playing"), {
+        once: true,
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const { target, isIntersecting } of entries) {
+          const video = target as HTMLVideoElement;
+          if (isIntersecting) load(video);
+          if (video.dataset.playback !== "visible") continue;
+          if (isIntersecting) video.play().catch(() => {});
+          else video.pause();
+        }
+      },
+      { rootMargin: "50% 0px" },
+    );
+
+    videos.forEach((video) => observer.observe(video));
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    .bg-video {
+      opacity: 0;
+      object-fit: cover;
+      transition: opacity var(--motion-slow) var(--motion-ease-out);
+      &.is-playing {
+        opacity: 1;
+      }
+    }
+  }
+</style>
