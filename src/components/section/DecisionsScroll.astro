@@ -177,8 +177,12 @@ const steps = [
       justify-content: start;
     }
 
-    /* Sticks under the nav bar, not behind it */
+    /* Sticks under the nav bar, not behind it. Lumos treats a section's
+       non-container children as background layers (absolute, no pointer
+       events), so the stage opts back in. */
     .decisions_stage {
+      inset: auto;
+      pointer-events: auto;
       position: sticky;
       top: var(--nav-height);
       height: calc(100svh - var(--nav-height));
