@@ -36,7 +36,7 @@ The live Webflow site (https://lyric.tech) is a valid source for media. Inspect 
 | 2 | Hero | `5405:8122` | Text fades in. **Video replaces the static image.** | built (herocubes.mp4 over the image) |
 | 3 | Logo strip | `5405:8131` (logos `7758:2967`, 24 logos) | Logos loop continuously and seamlessly. | built (1x logos, 2x/SVG pending) |
 | 4 | Supply Chains Run on Decisions | `5405:8076` (states `6826:322`, `6826:361`, `6826:337`, `6826:350`, `6826:268`) | Scroll reveals the words one at a time; background swaps to the matching image/video. | built (`DecisionsScroll`, pinned) |
-| 5 | Meet Your Mesh | `5405:8144` + `5451:1494` | Animation from client slides + Slack video (ask Fazlu for them). | |
+| 5 | Meet Your Mesh | `5405:8144` (phase 0), `5451:1494` (phase 1), `6698:7343` (full mesh) | Animation from client slides + Slack video. Live site: pinned, 4 cards, 357-frame image sequence. | built (`MeshScroll`, SVG mesh) |
 | 6 | One platform. Four layers. | `5405:9391` | — | |
 | 7 | Control for the Creator / Clarity for the Consumer | `5405:9577` (screens `6544:5017`, `6544:4820`) | Shows the Creator Zone and Consumer Zone sides. | |
 | 8 | Start anywhere | `5405:9588` | — | |
@@ -106,7 +106,11 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 
 **Decisions scroll** (`section/DecisionsScroll.astro`): the section is tall and its stage sticks under the nav; each word owns an equal slice of the scroll (`--_step-scroll: 30svh`). The active word gets the caret and slides across. The new visual wipes in with a clip-path from the side you scroll towards (bottom going down, top going up) and settles from 112% scale, while the outgoing one stays underneath drifting 6% the other way, like a slide change. Supply/Transportation play their videos only while active. Words are buttons that scroll to their slice. Copy sits at the content inset (104px) rather than Figma's 136px, to line up with every other section.
 
-**Nav dropdown** (`NavDropdown.astro`): Resource Hub mega menu, content copied from the live site (Figma has no design for it). Opens on hover with a short close delay on desktop, on click or Enter everywhere, closes on Escape or when focus leaves. The page behind blurs. In the mobile menu it becomes an accordion.
+**Meet Your Mesh** (`section/MeshScroll.astro`): pinned like the decisions section, four phases (Today, Start, Shift, Evolve; copy from Figma for 0 and 1, the live site for 2 and 3). The live site plays a 357-frame image sequence on a canvas; ours is one inline SVG built from Figma's real coordinates (cells, dashed slots, connector paths), so it is vector-sharp and a few KB. Each cell carries its state per phase as classes (`s1-p` = plum in phase 1, `s0-g` = grey in phase 0) and the section's `data-phase` switches them, with a shuffled per-cell delay. Connector lines draw with `pathLength="1"` and `stroke-dashoffset`. Phase 2 has no Figma frame: it is phase 1 plus the full mesh's first four functions. The progress bar follows scroll continuously (transform only), and cards share one grid cell so the outgoing one leaves before the next arrives. Below 48rem the label column and labels row are dropped and the grid fills the width.
+
+**Pinned sections in Lumos:** `Section` treats any child that isn't `.container` as a background layer (absolute, no pointer events), so a sticky stage either is the container (`containerClass`) or opts back in with `inset: auto; pointer-events: auto`. And `.container` centres its content (`justify-content: center`), so a grid stage needs `grid-template-columns: minmax(0, 1fr)` or its column shrinks to its content.
+
+**Nav dropdown** (`NavDropdown.astro`): Resource Hub mega menu, content copied from the live site (Figma has no design for it). Opens on hover with a short close delay on desktop, on click or Enter everywhere, closes on Escape or when focus leaves. The page behind blurs. In the mobile menu it becomes an accordion; while it is open the menu becomes a full-height sheet that scrolls on its own, and the opened group scrolls to the top.
 
 **Section borders:** `<Section borders="top" | "sides" | "both">` draws the full-width divider and the two rails with pseudo-elements, so they add no markup (the live site uses 5 divs per section). With side rails on, content is inset by `--content-inset`.
 
@@ -132,6 +136,7 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 
 ## Workflow
 
+- For every section, check all three sources before building: the Figma frames and notes, the live Webflow site (https://lyric.tech: structure, interactions, real copy and media), and this file. Then make the best call, aiming to do better than the live site, and note the decision here.
 - Build section by section. Stop after each one for Fazlu's review.
 - Check each section against the Figma frame at 1440 (overlay screenshots) and at 375.
 - The repo is on GitHub (`fazlu140/lyric-astro`, private) and deploys to Vercel from `main`. Work on a branch per section (`section/<name>`); every pushed branch gets a Vercel preview link. Fazlu reviews, pushes and merges. Small commits, clear messages.

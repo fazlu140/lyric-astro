@@ -1,0 +1,581 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import { shuffledOrder } from "@/utils/shuffle.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+/* Copy: phases 0 and 1 from Figma, 2 and 3 from the live site. */
+const phases = [
+  {
+    title: "Today: the Decision Mesh is typically a mess.",
+    text: "Black-box tools, siloed decisions, limited intelligence and infinite spreadsheets filling all the gaps. An architecture built for slower times, when technology was limiting and the market was more forgiving. Today's reality hits different. And when it does, the cracks show fast and value leaks everywhere.",
+  },
+  {
+    title: "Start where you're feeling the most pain.",
+    text: "Swap out the messy spreadsheets and brittle black-box tools, or finally solve something you never could before. All with composable logic backed by the latest in algorithmic intelligence, built to fit the way your business actually works today and ready to grow and adapt right alongside you.",
+  },
+  {
+    title: "More decisions come online, and something changes.",
+    text: "The connections between them become actionable, letting upstream signals automatically inform downstream choices. Not just within functions, but across them. This is where you move beyond individual decisions and start building Decision Journeys, connected sequences tailored to the reality of your industry and the way you operate.",
+  },
+  {
+    title: "The Decision Mesh moves and matures with you.",
+    text: "Connections tighten, new decisions activate, others are replaced without disruption. The Mesh becomes a living system adapting as strategies shift, markets change, and new opportunities emerge. Decisions are no longer frozen in tools or trapped in silos. They're dynamic, connected, and built to grow with you.",
+  },
+];
+
+const rows = ["Strategic", "Tactical", "Operational"];
+const columns = [
+  "Network",
+  "Demand",
+  "Supply",
+  "Inventory",
+  "Transportation",
+  "Capacity & Labor",
+  "Risk & Policies",
+];
+
+/* ---- Mesh geometry, read from the Figma frames (grid units = px) ---- */
+const GRID_X = 165; // label column width
+const COL = 164; // column width
+const GRID_H = 526;
+const CELL_W = 54;
+const CELL_H = 30;
+const VIEW_W = GRID_X + COL * 7; // 1313
+const VIEW_H = GRID_H + 61; // labels row below
+
+const slotsX = [16, 94];
+const slotsY = Array.from({ length: 9 }, (_, i) => 16 + i * 58);
+
+const parse = (list: string) =>
+  list.split(" ").map((entry) => {
+    const [x, y, kind] = entry.split(",");
+    return { key: `${x},${y}`, x: +x, y: +y, kind: kind as "g" | "p" };
+  });
+
+/* Phase 0: the mess. Grey decisions, nothing connected. */
+const phase0 = parse(
+  "94,190,g 16,74,g 180,74,g 258,306,g 422,364,g 422,74,g 586,16,g 586,248,g 672,16,g 750,480,g 836,190,g 1078,422,g",
+);
+/* Phase 1: the first connected decisions. */
+const phase1 = parse(
+  "16,16,p 94,190,g 16,74,p 16,132,p 180,190,p 180,74,g 258,306,g 422,364,p 422,74,g 586,16,g 586,248,p 672,16,p 672,364,p 672,306,p 672,480,p 750,480,g 836,190,g 1078,190,p 1078,422,p",
+);
+/* Phase 3: the full mesh. */
+const phase3 = parse(
+  "94,16,p 16,190,p 16,364,p 94,364,p 16,74,p 16,422,p 16,132,p 16,306,p 94,306,p 258,16,p 180,190,p 258,190,p 180,364,p 258,364,p 180,74,p 180,248,p 258,248,p 180,306,p 258,306,p 422,16,p 422,190,p 344,364,p 422,74,p 344,248,p 344,422,p 422,364,p 344,132,p 422,306,p 586,16,p 508,364,p 508,248,p 586,422,p 508,132,p 586,132,p 508,306,p 586,306,p 672,16,p 750,16,p 672,190,p 672,364,p 750,364,p 672,248,p 672,422,p 672,132,p 750,132,p 672,306,p 914,16,p 836,190,p 836,74,p 836,248,p 914,422,p 914,132,p 836,306,p 914,306,p 1000,16,p 1078,190,p 1000,74,p 1000,248,p 1000,422,p 1000,132,p 1078,248,p 1078,306,p 836,364,p 836,422,p",
+);
+/* Phase 2 (no Figma frame): phase 1 plus the full mesh's first four
+   functions, so the network visibly spreads left to right. */
+const SHIFT_EDGE = 672;
+const phase2 = [
+  ...phase1.filter((c) => !phase3.some((d) => d.key === c.key && d.x < SHIFT_EDGE)),
+  ...phase3.filter((c) => c.x < SHIFT_EDGE),
+];
+
+const links1 = [
+  "M164 31L29 31", "M164 89L29 89", "M164 147L29 147", "M42 29L42 138",
+  "M164 31L165 206", "M329 206L164 206", "M492 379L327 379", "M656 263L491 263",
+  "M699 29L699 485", "M820 321L655 321", "M820 31L699 31", "M820 379L655 379",
+  "M721 495L655 495", "M1105 205L983 205", "M1105 437L983 437",
+  "M656 496L656 379L492 379", "M984.5 204.5L984.5 175L820.5 175L820.5 30.5",
+  "M984.5 436.5L984.5 349.5L820.5 349.5", "M820.5 379.5L820.5 320.5",
+  "M492.5 262L492.5 175.5L328.5 175.5L328.5 205", "M656.5 321L656.5 262.5",
+];
+const links3 = [
+  "M535 263L535 324", "M475 322.5L613 322.5L613 147L672.5 147", "M43 98L43 199",
+  "M43 331L43 369", "M121 328L121 366", "M410 88.5L737.5 88.5L737.5 204.5L838 204.5",
+  "M285 271L285 309", "M207 336L207 374", "M207 336L207 349L285 349L285 367",
+  "M122 321L165 321L165 437.5L346 437.5", "M395.5 263L410 263L410 204.5L423 204.5",
+  "M613 147L613 263", "M699 379L699 425", "M777 31L777 149", "M699 31L699 149",
+  "M863 335L863 425", "M887.5 90L901.5 90L901.5 150L916.5 150",
+  "M423.5 204.5L502 204.5L502 436.5L586.5 436.5", "M1105 205L1105 382",
+  "M1002 263L992 263L992 437L1000.5 437", "M1002 31L992 31L992 149L1000 149",
+  "M687 321L902 321L902 205.5L1081.5 205.5", "M687 263L828 263L828 90L1003.5 90",
+  "M279 263L613 263", "M502 31L428 31", "M502 31L502 205", "M66 149L410 149L410 88.5",
+  "M396 149L410 149L410 204.5L422.5 204.5", "M280 31L246 31L246 90.5L227.5 90.5",
+  "M286 31L320 31L320 205L307.5 205", "M207 216L207 254", "M320 31L320 205",
+];
+const maxX = (d: string) => Math.max(...[...d.matchAll(/[ML]([\d.]+)/g)].map((m) => +m[1]));
+
+/* Each link knows which phases show it */
+const links = [
+  ...links1.map((d) => ({ d, phases: [1, 2] })),
+  ...links3.map((d) => ({ d, phases: maxX(d) < SHIFT_EDGE ? [2, 3] : [3] })),
+];
+
+/* Each filled position knows its state per phase: grey, plum or off */
+const allPhases = [phase0, phase1, phase2, phase3];
+const positions = new Map<string, { x: number; y: number; states: string[] }>();
+allPhases.forEach((cells, phase) =>
+  cells.forEach(({ key, x, y, kind }) => {
+    const entry = positions.get(key) ?? { x, y, states: [] };
+    entry.states.push(`s${phase}-${kind}`);
+    positions.set(key, entry);
+  }),
+);
+const cells = [...positions.values()];
+const order = shuffledOrder(cells.length);
+const linkOrder = shuffledOrder(links.length);
+---
+
+{
+  render && (
+    <Section
+      theme="light"
+      borders="both"
+      paddingTop="none"
+      paddingBottom="none"
+      class="mesh_wrap"
+      containerClass="mesh_stage"
+      style={`--_phases: ${phases.length}`}
+      data-mesh
+      data-phase="0"
+    >
+      <div class="mesh_head">
+        <div class="mesh_intro">
+          <Heading class="mesh_title" reveal="lines">
+            Meet
+            <br />
+            Your Mesh
+          </Heading>
+          <Paragraph class="mesh_lead" data-animate="fade-up" data-animate-delay="0.2">
+            Your supply chain is a massive mesh of decisions, running every
+            hour of every day.
+          </Paragraph>
+        </div>
+
+        <div class="mesh_phase">
+          <div class="mesh_progress" aria-hidden="true">
+            <span class="mesh_chip text-style-mono">
+              <span class="mesh_chip_square" />
+              Phase <span class="mesh_chip_number">0</span>
+            </span>
+            <span class="mesh_track">
+              <span class="mesh_fill" />
+              <span class="mesh_dot" />
+            </span>
+          </div>
+          <ol class="mesh_cards">
+            {phases.map((phase, i) => (
+              <li class:list={["mesh_card", i === 0 && "is-active"]} data-card={i}>
+                <h3 class="mesh_card_title text-style-h4">{phase.title}</h3>
+                <p class="mesh_card_text text-style-small">{phase.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      <div class="mesh_graph">
+        <svg
+          class="mesh_svg"
+          viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+          data-viewbox-full={`0 0 ${VIEW_W} ${VIEW_H}`}
+          data-viewbox-compact={`${GRID_X} 0 ${VIEW_W - GRID_X} ${GRID_H + 1}`}
+          preserveAspectRatio="xMinYMin meet"
+          role="img"
+          aria-label="A grid of supply chain decisions across seven functions and three levels, connecting more of them in each phase"
+        >
+          {columns.map((_, c) => (
+            <rect
+              class:list={["mesh_column", c % 2 === 0 && "is-tinted"]}
+              x={GRID_X + c * COL}
+              y="0"
+              width={COL}
+              height={GRID_H}
+            />
+          ))}
+
+          {columns.map((_, c) =>
+            slotsX.flatMap((sx) =>
+              slotsY.map((sy) => (
+                <rect
+                  class="mesh_slot"
+                  x={GRID_X + c * COL + sx + 0.5}
+                  y={sy + 0.5}
+                  width={CELL_W - 1}
+                  height={CELL_H - 1}
+                />
+              )),
+            ),
+          )}
+
+          <rect class="mesh_block s3-g" x={GRID_X + 258} y="306" width="140" height="88" />
+
+          <g class="mesh_links" transform={`translate(${GRID_X} 0)`}>
+            {links.map((link, i) => (
+              <path
+                class:list={["mesh_link", link.phases.map((p) => `l${p}`)]}
+                d={link.d}
+                pathLength="1"
+                style={`--_d: ${linkOrder[i] * 18}ms`}
+              />
+            ))}
+          </g>
+
+          {cells.map((cell, i) => (
+            <rect
+              class:list={["mesh_cell", cell.states]}
+              x={GRID_X + cell.x}
+              y={cell.y}
+              width={CELL_W}
+              height={CELL_H}
+              style={`--_d: ${order[i] * 6}ms`}
+            />
+          ))}
+
+          <line class="mesh_rule" x1={GRID_X} y1="0" x2={GRID_X} y2={VIEW_H} />
+          <line class="mesh_rule" x1="0" y1={GRID_H + 0.5} x2={VIEW_W} y2={GRID_H + 0.5} />
+          {rows.map((row, r) => (
+            <g class="mesh_label_group">
+              {r > 0 && (
+                <line
+                  class="mesh_rule"
+                  x1="0"
+                  y1={(GRID_H / 3) * r}
+                  x2={GRID_X}
+                  y2={(GRID_H / 3) * r}
+                />
+              )}
+              <text class="mesh_row_label" x="24" y={(GRID_H / 3) * r + GRID_H / 6}>
+                {row}
+              </text>
+            </g>
+          ))}
+          {columns.map((column, c) => (
+            <text
+              class="mesh_column_label"
+              x={GRID_X + c * COL + COL / 2}
+              y={GRID_H + 31}
+            >
+              {column.toUpperCase()}
+            </text>
+          ))}
+        </svg>
+      </div>
+    </Section>
+  )
+}
+
+<script>
+  import { ScrollTrigger } from "@/utils/gsap.ts";
+
+  for (const section of document.querySelectorAll<HTMLElement>("[data-mesh]")) {
+    const stage = section.querySelector<HTMLElement>(".mesh_stage");
+    const cards = [...section.querySelectorAll<HTMLElement>(".mesh_card")];
+    const number = section.querySelector<HTMLElement>(".mesh_chip_number");
+    const svg = section.querySelector<SVGSVGElement>(".mesh_svg");
+    const count = cards.length;
+    let current = 0;
+
+    const setPhase = (index: number) => {
+      if (index === current) return;
+      current = index;
+      section.dataset.phase = String(index);
+      if (number) number.textContent = String(index);
+      cards.forEach((card, i) => card.classList.toggle("is-active", i === index));
+    };
+
+    ScrollTrigger.create({
+      trigger: section,
+      start: "top top",
+      end: "bottom bottom",
+      onUpdate: ({ progress }) => {
+        stage?.style.setProperty("--_progress", progress.toFixed(4));
+        setPhase(Math.min(count - 1, Math.floor(progress * count)));
+      },
+    });
+
+    /* On small screens the label column and labels row are dropped, and the
+       grid alone fills the width. */
+    const compact = window.matchMedia("(width < 48rem)");
+    const fitView = () => {
+      if (!svg) return;
+      svg.setAttribute(
+        "viewBox",
+        (compact.matches ? svg.dataset.viewboxCompact : svg.dataset.viewboxFull) ?? "",
+      );
+    };
+    fitView();
+    compact.addEventListener("change", fitView);
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    /* Tall section, sticky stage: one slice of scroll per phase */
+    .mesh_wrap {
+      --_phase-scroll: 55svh;
+      height: calc(
+        100svh - var(--nav-height) + (var(--_phases) - 1) * var(--_phase-scroll) +
+          3.125rem
+      );
+      padding-top: 3.125rem;
+      justify-content: start;
+    }
+
+    .mesh_wrap > .container.mesh_stage {
+      --_progress: 0;
+      position: sticky;
+      top: var(--nav-height);
+      height: calc(100svh - var(--nav-height));
+      min-height: 34rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 0;
+      align-items: stretch;
+      padding-inline: 0;
+      border-top: var(--border-width) solid var(--border);
+    }
+
+    /* ---- Head ---- */
+    .mesh_head {
+      display: grid;
+      border-bottom: var(--border-width) solid var(--border);
+    }
+
+    .mesh_intro,
+    .mesh_phase {
+      padding: var(--space-5) var(--content-inset);
+    }
+
+    .mesh_intro {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      & > * {
+        margin: 0;
+      }
+    }
+
+    .mesh_title {
+      line-height: 1.04;
+    }
+
+    .mesh_lead {
+      max-width: 26rem;
+      color: var(--text-2);
+      font-weight: var(--primary-medium);
+    }
+
+    .mesh_phase {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      border-top: var(--border-width) solid var(--border);
+    }
+
+    .mesh_progress {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .mesh_chip {
+      display: inline-flex;
+      flex: none;
+      align-items: center;
+      gap: var(--space-1);
+      padding: 0.25rem 0.75rem;
+      border: var(--border-width) solid var(--border);
+      background-color: var(--background);
+      color: var(--plum-400);
+      font-size: var(--text-small);
+      line-height: 1.43;
+    }
+
+    .mesh_chip_square {
+      width: 0.5625rem;
+      height: 0.5625rem;
+      background-color: currentcolor;
+    }
+
+    .mesh_chip_number {
+      display: inline-block;
+      min-width: 1ch;
+    }
+
+    /* The bar follows the scroll itself; transform only */
+    .mesh_track {
+      position: relative;
+      flex: 1;
+      max-width: 40rem;
+      height: 0.125rem;
+      background-color: var(--border);
+      container-type: inline-size;
+    }
+
+    .mesh_fill {
+      position: absolute;
+      inset: 0;
+      background-color: var(--plum-400);
+      transform-origin: 0 50%;
+      transform: scaleX(var(--_progress));
+    }
+
+    .mesh_dot {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 0.5625rem;
+      height: 0.5625rem;
+      background-color: var(--plum-400);
+      translate: calc(var(--_progress) * (100cqw - 0.5625rem)) -50%;
+    }
+
+    /* Cards share one grid cell, so the height never jumps */
+    .mesh_cards {
+      display: grid;
+    }
+
+    .mesh_card {
+      grid-area: 1 / 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      max-width: 46rem;
+      opacity: 0;
+      translate: 0 0.75rem;
+      visibility: hidden;
+      transition:
+        opacity var(--motion-fast) var(--motion-ease-out),
+        translate var(--motion-fast) var(--motion-ease-out),
+        visibility 0s linear var(--motion-fast);
+      &.is-active {
+        opacity: 1;
+        translate: 0 0;
+        visibility: visible;
+        /* The outgoing card leaves first, then this one arrives */
+        transition:
+          opacity var(--motion-base) var(--motion-ease-out) var(--motion-fast),
+          translate var(--motion-base) var(--motion-ease-out) var(--motion-fast),
+          visibility 0s;
+      }
+    }
+
+    .mesh_card_title {
+      margin: 0;
+    }
+
+    .mesh_card_text {
+      margin: 0;
+      color: var(--text-2);
+    }
+
+    /* ---- Graph ---- */
+    .mesh_graph {
+      min-height: 0;
+      display: flex;
+    }
+
+    .mesh_svg {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      overflow: visible;
+    }
+
+    .mesh_column {
+      fill: var(--white);
+      &.is-tinted {
+        fill: var(--grey-10);
+      }
+    }
+
+    .mesh_slot {
+      fill: none;
+      stroke: var(--grey-80);
+      stroke-width: 1;
+      stroke-dasharray: 3 2;
+    }
+
+    .mesh_rule {
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+
+    .mesh_row_label {
+      fill: var(--text);
+      font-size: 1.25rem;
+      font-weight: var(--primary-medium);
+      dominant-baseline: middle;
+    }
+
+    .mesh_column_label {
+      fill: var(--text);
+      font-family: var(--secondary-family);
+      font-size: 0.875rem;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    /* Cells and blocks: hidden until their phase names a state for them */
+    .mesh_cell,
+    .mesh_block {
+      fill: var(--grey-80);
+      opacity: 0;
+      transition:
+        opacity 0.45s var(--motion-ease-out) var(--_d, 0ms),
+        fill 0.45s var(--motion-ease-out) var(--_d, 0ms);
+    }
+
+    .mesh_wrap[data-phase="0"] .s0-g,
+    .mesh_wrap[data-phase="1"] .s1-g,
+    .mesh_wrap[data-phase="2"] .s2-g,
+    .mesh_wrap[data-phase="3"] .s3-g {
+      opacity: 1;
+    }
+
+    .mesh_wrap[data-phase="1"] .s1-p,
+    .mesh_wrap[data-phase="2"] .s2-p,
+    .mesh_wrap[data-phase="3"] .s3-p {
+      opacity: 1;
+      fill: var(--plum-400);
+    }
+
+    /* Links draw along their length when their phase arrives */
+    .mesh_link {
+      fill: none;
+      stroke: var(--plum-400);
+      stroke-width: 1;
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      transition: stroke-dashoffset 0.8s var(--motion-ease-in-out) var(--_d, 0ms);
+    }
+
+    .mesh_wrap[data-phase="1"] .l1,
+    .mesh_wrap[data-phase="2"] .l2,
+    .mesh_wrap[data-phase="3"] .l3 {
+      stroke-dashoffset: 0;
+    }
+
+    @media (width < 48rem) {
+      .mesh_row_label,
+      .mesh_column_label,
+      .mesh_label_group {
+        display: none;
+      }
+    }
+
+    @media (width >= 48rem) {
+      .mesh_head {
+        grid-template-columns: minmax(0, 0.338fr) minmax(0, 0.662fr);
+      }
+
+      .mesh_phase {
+        padding-inline: 1.875rem var(--content-inset);
+        border-top: 0;
+        border-left: var(--border-width) solid var(--border);
+      }
+    }
+  }
+</style>
