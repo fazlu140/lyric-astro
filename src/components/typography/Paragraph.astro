@@ -29,6 +29,14 @@ interface Props extends HTMLAttributes<"p"> {
    * @int
    */
   maxWidth?: number;
+  /** Split the text with GSAP SplitText and reveal it, on load above the fold or on scroll below it. */
+  reveal?: "lines" | "words" | "chars";
+  /**
+   * Reveal delay in seconds.
+   *
+   * @min 0
+   */
+  revealDelay?: number;
 }
 
 const {
@@ -36,6 +44,8 @@ const {
   tag: Tag = "p",
   variant = "inherit",
   maxWidth,
+  reveal,
+  revealDelay,
   class: className,
   ...rest
 } = Astro.props;
@@ -52,6 +62,8 @@ const content = await slotContent(Astro.slots);
         className,
       ]}
       style={maxWidth ? `--_mw: ${maxWidth}ch;` : undefined}
+      data-reveal={reveal}
+      data-reveal-delay={reveal && revealDelay ? revealDelay : undefined}
       {...rest}
     >
       <Fragment set:html={content} />
