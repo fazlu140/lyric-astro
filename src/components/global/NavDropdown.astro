@@ -86,7 +86,13 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
     };
 
     toggle.addEventListener("click", () => {
-      setOpen(toggle.getAttribute("aria-expanded") !== "true");
+      const open = toggle.getAttribute("aria-expanded") !== "true";
+      setOpen(open);
+      /* In the mobile menu, bring the opened group to the top of the sheet */
+      const sheet = wrap.closest<HTMLElement>(".nav_menu");
+      if (open && !desktop.matches && sheet) {
+        sheet.scrollTo({ top: wrap.offsetTop - 8, behavior: "smooth" });
+      }
     });
 
     /* Hover intent: open at once, close after a short grace period so the

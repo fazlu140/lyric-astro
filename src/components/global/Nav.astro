@@ -326,6 +326,12 @@ const links: { label: string; href: string; badge?: string }[] = [
         visibility 0s;
     }
 
+    /* With Resource Hub open the menu turns into a full-height sheet that
+       scrolls on its own, instead of a panel that ends mid-screen */
+    .nav_menu:has(.nav_dd_wrap.open) {
+      height: calc(100svh - var(--nav-height));
+    }
+
     html:has(.nav_wrap.open) {
       overflow: hidden;
     }
@@ -428,6 +434,7 @@ const links: { label: string; href: string; badge?: string }[] = [
         align-self: stretch;
         display: flex;
         max-height: none;
+        height: auto;
         overflow: visible;
         visibility: visible;
         clip-path: none;
@@ -463,6 +470,10 @@ const links: { label: string; href: string; badge?: string }[] = [
 
       html:has(.nav_wrap.open) {
         overflow: visible;
+      }
+
+      .nav_menu:has(.nav_dd_wrap.open) {
+        height: auto;
       }
 
       .nav_link {
