@@ -1,0 +1,340 @@
+---
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Img from "@/components/media/Img.astro";
+import Icon from "@/components/media/Icon.astro";
+import BackgroundVideo from "@/components/media/BackgroundVideo.astro";
+import caret from "@/assets/icons/caret-large.svg";
+import { pickAsset } from "@/utils/assets.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/home/decisions/*.{png,jpg,webp,avif}",
+  { eager: true },
+);
+
+const MEDIA = "https://lyric-website-files.s3.us-east-1.amazonaws.com/web-media";
+
+const steps = [
+  { label: "Network", image: "01-network" },
+  { label: "Demand", image: "02-demand" },
+  { label: "Supply", image: "03-supply", video: `${MEDIA}/supply.mp4` },
+  { label: "Inventory", image: "04-inventory" },
+  {
+    label: "Transportation",
+    image: "05-transportation",
+    video: `${MEDIA}/transportation.mp4`,
+  },
+  { label: "Capacity & Labor", image: "06-capacity-labor" },
+].map((step) => ({ ...step, src: pickAsset(images, step.image) }));
+---
+
+{
+  render && (
+    <section
+      class="section decisions_wrap theme-dark"
+      style={`--_steps: ${steps.length}`}
+      data-decisions
+    >
+      <div class="decisions_stage">
+        <div class="decisions_media" aria-hidden="true">
+          {steps.map((step, i) => (
+            <div class:list={["decisions_visual", i === 0 && "is-active"]}>
+              <Img
+                class="decisions_image"
+                src={step.src}
+                width={1440}
+                height={800}
+                loading="lazy"
+              />
+              {step.video && (
+                <BackgroundVideo
+                  class="decisions_image"
+                  src={step.video}
+                  playback="manual"
+                />
+              )}
+            </div>
+          ))}
+          <div class="decisions_shade" />
+          <div class="decisions_tint" />
+        </div>
+
+        <div class="container decisions_layout">
+          <div class="decisions_intro">
+            <Heading class="decisions_title" reveal="lines">
+              Supply Chains
+              <br />
+              Run on Decisions
+            </Heading>
+            <div class="decisions_text" data-animate="fade-up" data-animate-delay="0.2">
+              <Paragraph>
+                Not on plans. Not on models.
+                <br />
+                On decisions.
+              </Paragraph>
+              <Paragraph>
+                Thousands of them, interdependent, unfolding in real time. Every
+                choice ripples, and every ripple is another choice waiting to be
+                made.
+              </Paragraph>
+            </div>
+          </div>
+
+          <ol class="decisions_list" aria-label="Decision areas">
+            {steps.map((step, i) => (
+              <li>
+                <button
+                  class:list={["decisions_step", i === 0 && "is-active"]}
+                  type="button"
+                  aria-current={i === 0 ? "step" : undefined}
+                  data-step={i}
+                >
+                  <Icon class="decisions_caret" src={caret} />
+                  <span class="decisions_label">{step.label}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<script>
+  import { ScrollTrigger } from "@/utils/gsap.ts";
+
+  for (const section of document.querySelectorAll<HTMLElement>("[data-decisions]")) {
+    const steps = [...section.querySelectorAll<HTMLButtonElement>(".decisions_step")];
+    const visuals = [...section.querySelectorAll<HTMLElement>(".decisions_visual")];
+    const count = steps.length;
+    let current = 0;
+
+    const activate = (index: number) => {
+      if (index === current) return;
+      current = index;
+      steps.forEach((step, i) => {
+        const on = i === index;
+        step.classList.toggle("is-active", on);
+        if (on) step.setAttribute("aria-current", "step");
+        else step.removeAttribute("aria-current");
+      });
+      visuals.forEach((visual, i) => {
+        const on = i === index;
+        visual.classList.toggle("is-active", on);
+        const video = visual.querySelector<HTMLVideoElement>("video");
+        if (!video) return;
+        if (on && video.src) video.play().catch(() => {});
+        else video.pause();
+      });
+    };
+
+    /* One step per slice of the pinned scroll distance. */
+    const trigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top top",
+      end: "bottom bottom",
+      onUpdate: ({ progress }) =>
+        activate(Math.min(count - 1, Math.floor(progress * count))),
+    });
+
+    /* A word scrolls to the middle of its own slice. */
+    steps.forEach((step, i) => {
+      step.addEventListener("click", () => {
+        const y = trigger.start + ((i + 0.5) / count) * (trigger.end - trigger.start);
+        window.scrollTo({ top: y, behavior: "smooth" });
+      });
+    });
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    /* The section is tall; the stage sticks while the words step through. */
+    .decisions_wrap {
+      --_step-scroll: 45svh;
+      height: calc(100svh - var(--nav-height) + (var(--_steps) - 1) * var(--_step-scroll));
+      padding: 0;
+      justify-content: start;
+    }
+
+    /* Sticks under the nav bar, not behind it */
+    .decisions_stage {
+      position: sticky;
+      top: var(--nav-height);
+      height: calc(100svh - var(--nav-height));
+      min-height: 36rem;
+      overflow: clip;
+    }
+
+    .decisions_media,
+    .decisions_visual,
+    .decisions_image,
+    .decisions_shade {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .decisions_visual {
+      opacity: 0;
+      scale: 1.04;
+      transition:
+        opacity var(--motion-slow) var(--motion-ease-out),
+        scale 1.6s var(--motion-ease-out);
+      &.is-active {
+        opacity: 1;
+        scale: 1;
+      }
+    }
+
+    /* Darkens behind the copy: the whole stage on mobile, the left on desktop
+       as the stacked multiply layers in Figma */
+    .decisions_shade {
+      background-image: linear-gradient(
+        180deg,
+        rgb(13 13 13 / 0.88) 0%,
+        rgb(13 13 13 / 0.7) 60%,
+        rgb(13 13 13 / 0.55) 100%
+      );
+    }
+
+    @media (width >= 48rem) {
+      .decisions_shade {
+        width: 81%;
+        background-image: linear-gradient(
+        90deg,
+        rgb(13 13 13 / 0.93) 19.5%,
+        rgb(13 13 13 / 0.92) 30.3%,
+        rgb(13 13 13 / 0.9) 48.9%,
+        rgb(13 13 13 / 0.85) 57.6%,
+        rgb(13 13 13 / 0.74) 67.5%,
+        rgb(13 13 13 / 0.62) 80.5%,
+        rgb(13 13 13 / 0.4) 90.3%,
+        rgb(13 13 13 / 0) 100%
+      );
+      }
+    }
+
+    /* Plum hue wash from the lower left */
+    .decisions_tint {
+      position: absolute;
+      left: -41.7%;
+      top: -14.9%;
+      width: 120.8%;
+      height: 204%;
+      rotate: -8.45deg;
+      background-image: radial-gradient(
+        closest-side,
+        var(--plum-400) 35%,
+        transparent 100%
+      );
+      mix-blend-mode: hue;
+      pointer-events: none;
+    }
+
+    .decisions_layout {
+      position: relative;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      align-content: start;
+      gap: var(--space-7);
+      padding-block: var(--section-space-small);
+      padding-inline: var(--content-inset);
+    }
+
+    .decisions_intro {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      max-width: 25rem;
+    }
+
+    .decisions_title {
+      margin: 0;
+    }
+
+    .decisions_text {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      color: var(--text-2);
+      font-weight: var(--primary-medium);
+      & > * {
+        margin: 0;
+      }
+    }
+
+    .decisions_list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4em;
+      font-size: var(--h3);
+      line-height: 1.35;
+      font-weight: var(--primary-medium);
+    }
+
+    .decisions_step {
+      position: relative;
+      display: flex;
+      align-items: center;
+      color: var(--grey-600);
+      transition: color var(--motion-base) var(--motion-ease-out);
+      @media (hover: hover) {
+        &:hover {
+          color: var(--grey-400);
+        }
+      }
+      &.is-active {
+        color: var(--white);
+        text-shadow: 0 0.25rem 0.5rem rgb(0 0 0 / 0.25);
+      }
+    }
+
+    /* The caret slides in and pushes the active word across */
+    .decisions_caret.icon {
+      --_size: 0.9167em;
+      position: absolute;
+      left: 0;
+      opacity: 0;
+      translate: -0.5em 0;
+      transition:
+        opacity var(--motion-base) var(--motion-ease-out),
+        translate var(--motion-base) var(--motion-ease-out);
+    }
+
+    .decisions_label {
+      transition: translate var(--motion-base) var(--motion-ease-out);
+    }
+
+    .decisions_step.is-active {
+      & .decisions_caret {
+        opacity: 1;
+        translate: 0 0;
+      }
+      & .decisions_label {
+        translate: 1.333em 0;
+      }
+    }
+
+    @media (width >= 48rem) {
+      .decisions_layout {
+        grid-template-columns: minmax(0, 0.617fr) minmax(0, 1fr);
+        grid-template-rows: none;
+      }
+
+      .decisions_list {
+        font-size: var(--h2);
+      }
+    }
+  }
+</style>

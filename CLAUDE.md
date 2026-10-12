@@ -21,15 +21,22 @@ This workspace can't download from figma.com, so asset URLs from `get_design_con
 - **Images:** `get_screenshot` with `enableBase64Response: true` and `contentsOnly: true` on the image node. This tops out at 1x (1440 wide); ask Fazlu for the 2x original when a raster image matters.
 - **Video:** not in Figma. Fazlu supplies the files.
 
+### Getting assets from the live site
+
+The live Webflow site (https://lyric.tech) is a valid source for media. Inspect it in the browser pane to find URLs.
+
+- **Videos** are on Lyric's own S3 (`lyric-website-files.s3.us-east-1.amazonaws.com/web-media/…`). Reference those URLs directly through `BackgroundVideo`; videos don't belong in the repo.
+- **Images** are on Webflow's CDN, which this workspace can't reach. Add each one to `scripts/fetch-assets.mjs`, keep a Figma stand-in at the same path with a different extension, and ask Fazlu to run `npm run fetch-assets`. Components pick files by name with `pickAsset()` from `src/utils/assets.ts`, so the swap needs no code change.
+
 ## Homepage sections and notes
 
 | # | Section | Node | Designer note | Status |
 | --- | --- | --- | --- | --- |
 | 1 | Nav | `5405:8099` | — | built |
-| 2 | Hero | `5405:8122` | Text fades in. **Video replaces the static image.** | built (image, video pending) |
+| 2 | Hero | `5405:8122` | Text fades in. **Video replaces the static image.** | built (herocubes.mp4 over the image) |
 | 3 | Logo strip | `5405:8131` (logos `7758:2967`, 24 logos) | Logos loop continuously and seamlessly. | built (1x logos, 2x/SVG pending) |
-| 4 | Supply Chains Run on Decisions | `5405:8144` (states `6826:268`…) | Scroll reveals the words one at a time; background swaps to the matching image/video. | |
-| 5 | Meet Your Mesh | `5405:8326` + `5451:1494` | Animation from client slides + Slack video (ask Fazlu for them). | |
+| 4 | Supply Chains Run on Decisions | `5405:8076` (states `6826:322`, `6826:361`, `6826:337`, `6826:350`, `6826:268`) | Scroll reveals the words one at a time; background swaps to the matching image/video. | built (`DecisionsScroll`, pinned) |
+| 5 | Meet Your Mesh | `5405:8144` + `5451:1494` | Animation from client slides + Slack video (ask Fazlu for them). | |
 | 6 | One platform. Four layers. | `5405:9391` | — | |
 | 7 | Control for the Creator / Clarity for the Consumer | `5405:9577` (screens `6544:5017`, `6544:4820`) | Shows the Creator Zone and Consumer Zone sides. | |
 | 8 | Start anywhere | `5405:9588` | — | |
@@ -48,13 +55,13 @@ These refine the Figma file. Where they conflict with a layer, these win. A home
 
 | Token | Max | Min | Line height | Weight | Used for |
 | --- | --- | --- | --- | --- | --- |
-| display | 62 | 40 | 1.2 | 600 | Hero headline |
-| h1 | 56 | 36 | 1.07 | 500 | CTA headline |
+| display | 62 | 36 | 1.2 | 600 | Hero headline |
+| h1 | 56 | 34 | 1.07 | 500 | CTA headline |
 | h2 | 48 | 32 | 1.1 | 500 | Section headlines |
 | h3 | 32 | 24 | 1.44 | 500 | Case study card titles |
 | h4 | 20 | 18 | 1.2 | 500 | Small titles |
 | text-large | 18 | 16 | 1.5 | 500 | Hero and lead paragraphs |
-| text-main | 16 | 15 | 1.5 | 400 | Body |
+| text-main | 16 | 16 | 1.5 | 400 | Body |
 | text-small | 14 | 14 | 1.5 | 400 | Nav, captions, buttons |
 
 **Colors** (named after the Figma variables):
@@ -80,20 +87,43 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 - Dropdown items: background turns plum-10 and the caret nudges 4px left.
 - Logo: fades to 60%.
 
-**Text reveals:** `reveal="lines" | "words" | "chars"` (and `revealDelay`) on `Heading` and `Paragraph` splits the text with GSAP SplitText and fades each part up 0.6em. No overflow mask, so nothing is clipped. Above the fold it plays on load, below it on scroll (ScrollTrigger, once). `utility/Reveal.astro` (in the layout) imports GSAP only when the page has a reveal; with reduced motion the text just shows. Never use a top-level `await` in a component script: Astro bundles a page's scripts into one module, so it would delay every other script.
+**Motion system** (one place to retime everything):
 
-**Mobile menu:** full-height dark panel that wipes down from the bar, 24px links staggering in, Resource Hub as an accordion in the dark theme, page scroll locked while open.
+- CSS tokens in `base.css`: `--motion-fast` (hovers), `--motion-base` (menus, state changes), `--motion-slow` (crossfades), `--motion-ease-out`, `--motion-ease-in-out`.
+- GSAP settings in `src/utils/motion.ts`: easing, duration, distances, staggers, scroll start, and named presets (`fade`, `fade-up`, `fade-down`, `fade-left`, `fade-right`, `scale`).
+- Import GSAP only from `src/utils/gsap.ts` (plugins registered once, defaults applied).
+- `utility/Motion.astro` (in the layout) animates by data attribute, so components need no script for entrances:
+  - `reveal="lines" | "words" | "chars"` (+ `revealDelay`) on `Heading`/`Paragraph`: SplitText, each part fades up, no overflow mask.
+  - `data-animate="fade-up"` on any element; add `data-animate-children` to stagger its children, `data-animate-delay="0.2"` to wait.
+  - Above the fold plays on load, below it plays once on scroll. Reduced motion shows everything at rest.
+- Never use a top-level `await` in a component script: Astro bundles a page's scripts into one module, so it would delay every other script.
+
+**Fluid sizing:** every type size, space and margin is a `-min`/`-max` pair in `base.css` that scales between `--viewport-min` (375) and `--viewport-max` (1440) with `clamp()` in rem, so browser zoom and text size settings still work and nothing costs Lighthouse points. To add one, copy an existing token's three lines and change the numbers, or run `node .agents/skills/lumos-import-figma/convert.mjs --px <value>`.
+
+**Mobile menu:** a dark panel only as tall as its content (scrolls if taller than the screen) that wipes down from the bar, 18px links staggering in, Resource Hub as an accordion in the dark theme, page blurred and scroll locked behind it.
+
+**Background video** (`media/BackgroundVideo.astro`): sits over a poster image and fades in once playing, so the image stays the first paint. Loads only near the screen, never for reduced motion or data saver. `playback="visible"` plays while on screen; `"manual"` leaves play/pause to a parent script.
+
+**Decisions scroll** (`section/DecisionsScroll.astro`): the section is tall and its stage sticks under the nav; each word owns an equal slice of the scroll (`--_step-scroll: 45svh`). The active word gets the caret and slides across, the background crossfades, and Supply/Transportation play their videos only while active. Words are buttons that scroll to their slice. Copy sits at the content inset (104px) rather than Figma's 136px, to line up with every other section.
 
 **Nav dropdown** (`NavDropdown.astro`): Resource Hub mega menu, content copied from the live site (Figma has no design for it). Opens on hover with a short close delay on desktop, on click or Enter everywhere, closes on Escape or when focus leaves. The page behind blurs. In the mobile menu it becomes an accordion.
 
-**Section borders:** `<Section borders="top" | "sides" | "both">` draws the full-width divider and the two rails with pseudo-elements, so they add no markup (the live site uses 5 divs per section). With side rails on, content is inset 40px (`--space-6`) from them, as in Figma.
+**Section borders:** `<Section borders="top" | "sides" | "both">` draws the full-width divider and the two rails with pseudo-elements, so they add no markup (the live site uses 5 divs per section). With side rails on, content is inset by `--content-inset`.
 
-**Layout:** `--site-margin` max 64px is the page "rail" (the two vertical lines at x=64 and x=1376). Content inside the rails sits 40px further in (`--space-6`). Nav and hero sit 16px in (`--space-3`), at x=80. Nav switches to the desktop bar at `72rem`: seven links plus the button don't fit at the `64rem` Grid breakpoint.
+**Layout and edges** (the live site's insets vary 18 to 58px on mobile; ours are fixed):
+
+| Token | Mobile (375) | Desktop (1440) | What sits there |
+| --- | --- | --- | --- |
+| `--site-margin` | 16 | 64 | The rails |
+| `--site-margin` + `--content-inset` | 32 | 104 | Section content |
+| `--site-margin` + `--edge-inset` | 32 | 80 | Nav and hero content |
+
+`--max-width-main` is 82rem (1312px, rail to rail). Nav switches to the desktop bar at `72rem`: seven links plus the button don't fit at the `64rem` Grid breakpoint.
 
 ## Animation and performance
 
 - CSS first: transitions, keyframes, scroll-driven animations (`animation-timeline`) with an `@supports` fallback.
-- GSAP only when CSS can't do it cleanly (pinning, scrubbed timelines, SplitText). Import it inside the component that needs it, never globally. Not installed yet.
+- GSAP (installed, 3.15) for SplitText, ScrollTrigger and anything CSS can't do cleanly. Always import from `@/utils/gsap.ts`. When an update adds a package, tell Fazlu to run `npm install`.
 - Other libraries (Swiper, Lenis, Rive, Three.js) only when the design clearly calls for it. Propose with a reason and wait for approval.
 - Animate only `transform` and `opacity`. Always respect `prefers-reduced-motion`.
 - Target Lighthouse 95+ in all four categories on mobile.
@@ -104,7 +134,7 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 
 - Build section by section. Stop after each one for Fazlu's review.
 - Check each section against the Figma frame at 1440 (overlay screenshots) and at 375.
-- Never commit to `main` once the repo is on GitHub; work on a branch. Small commits, clear messages. Fazlu pushes.
+- The repo is on GitHub (`fazlu140/lyric-astro`, private) and deploys to Vercel from `main`. Work on a branch per section (`section/<name>`); every pushed branch gets a Vercel preview link. Fazlu reviews, pushes and merges. Small commits, clear messages.
 - Before starting the dev server, check `astro dev status`. If it isn't running, start it with `astro dev --background` and give the localhost link.
 - Don't run `npm audit fix` and don't upgrade Astro or Lumos.
 
@@ -120,8 +150,9 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 - General Sans font files are a stand-in from a public GitHub mirror. Replace with the official Fontshare files (or the ones from the Webflow project) before launch.
 - Client logos are 1x crops from a Figma screenshot (40px tall, soft on retina). Fazlu to export the 24 logo frames from `7758:2967` as 2x PNG or SVG into `src/assets/logos/clients/` with the same file names.
 - Logo strip padding is 60px top and bottom (no token, kept as `3.75rem`). The marquee pauses on hover; its pause button only shows on keyboard focus since the design has none.
-- Hero headline now waits for GSAP to reveal it, which may cost a little LCP. Revisit when measuring Lighthouse.
-- Hero image is a 1x export (1440 wide). Swap for the hero **video** when Fazlu has it.
+- Hero headline waits for GSAP to reveal it, which may cost a little LCP. Revisit when measuring Lighthouse.
+- Hero image and the 6 decision visuals are 1x Figma stand-ins until Fazlu runs `npm run fetch-assets`.
+- Decisions section on mobile: full-width shade added (Figma has no mobile), words at h3 size.
 - Dropdown has no Figma design; layout and copy follow the live site. Confirm with the designer.
 - Nav gaps are 28px (logo, divider, links). Not a token; kept as `1.75rem`.
 - Section headline line heights vary on the page (48/50, 48/52, 48/56). Consolidated to 1.1 for h2.
