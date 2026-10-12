@@ -117,8 +117,20 @@ const steps = [
     const count = steps.length;
     let current = 0;
 
+    let leavingTimer: number | undefined;
+
     const activate = (index: number) => {
       if (index === current) return;
+      /* The new visual wipes in from the side you scroll towards; the one it
+         replaces stays underneath, drifting the other way, until covered. */
+      section.dataset.direction = index > current ? "down" : "up";
+      window.clearTimeout(leavingTimer);
+      visuals.forEach((visual) => visual.classList.remove("is-leaving"));
+      visuals[current]?.classList.add("is-leaving");
+      leavingTimer = window.setTimeout(
+        () => visuals.forEach((visual) => visual.classList.remove("is-leaving")),
+        1000,
+      );
       current = index;
       steps.forEach((step, i) => {
         const on = i === index;
@@ -159,7 +171,7 @@ const steps = [
   @layer components {
     /* The section is tall; the stage sticks while the words step through. */
     .decisions_wrap {
-      --_step-scroll: 45svh;
+      --_step-scroll: 30svh;
       height: calc(100svh - var(--nav-height) + (var(--_steps) - 1) * var(--_step-scroll));
       padding: 0;
       justify-content: start;
@@ -184,16 +196,58 @@ const steps = [
       height: 100%;
     }
 
+    /* Waiting visuals are clipped away on the side they will enter from */
     .decisions_visual {
-      opacity: 0;
-      scale: 1.04;
-      transition:
-        opacity var(--motion-slow) var(--motion-ease-out),
-        scale 1.6s var(--motion-ease-out);
-      &.is-active {
-        opacity: 1;
-        scale: 1;
+      --_wipe: cubic-bezier(0.76, 0, 0.24, 1);
+      z-index: 0;
+      clip-path: inset(100% 0 0 0);
+      & > * {
+        scale: 1.12;
       }
+    }
+
+    .decisions_wrap[data-direction="up"] .decisions_visual {
+      clip-path: inset(0 0 100% 0);
+    }
+
+    .decisions_wrap .decisions_visual.is-leaving {
+      z-index: 1;
+      clip-path: inset(0);
+      & > * {
+        scale: 1;
+        translate: 0 -6%;
+        transition:
+          translate 0.9s var(--_wipe),
+          opacity var(--motion-slow) var(--motion-ease-out);
+      }
+    }
+
+    .decisions_wrap[data-direction="up"] .decisions_visual.is-leaving > * {
+      translate: 0 6%;
+    }
+
+    .decisions_wrap .decisions_visual.is-active {
+      z-index: 2;
+      clip-path: inset(0);
+      transition: clip-path 0.9s var(--_wipe);
+      & > * {
+        scale: 1;
+        translate: 0 0;
+        transition:
+          scale 1.4s var(--motion-ease-out),
+          opacity var(--motion-slow) var(--motion-ease-out);
+      }
+    }
+
+    .decisions_shade,
+    .decisions_tint {
+      z-index: 3;
+    }
+
+    /* Keeps the visuals' stacking to themselves, under the copy */
+    .decisions_media {
+      z-index: 0;
+      isolation: isolate;
     }
 
     /* Darkens behind the copy: the whole stage on mobile, the left on desktop
@@ -249,7 +303,7 @@ const steps = [
       align-content: start;
       gap: var(--space-7);
       padding-block: var(--section-space-small);
-      padding-inline: var(--content-inset);
+      padding-inline: var(--edge-inset);
     }
 
     .decisions_intro {
@@ -288,7 +342,7 @@ const steps = [
       display: flex;
       align-items: center;
       color: var(--grey-600);
-      transition: color var(--motion-base) var(--motion-ease-out);
+      transition: color var(--motion-fast) var(--motion-ease-out);
       @media (hover: hover) {
         &:hover {
           color: var(--grey-400);
@@ -328,6 +382,7 @@ const steps = [
 
     @media (width >= 48rem) {
       .decisions_layout {
+        padding-inline: var(--content-inset);
         grid-template-columns: minmax(0, 0.617fr) minmax(0, 1fr);
         grid-template-rows: none;
       }

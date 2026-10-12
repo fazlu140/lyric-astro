@@ -93,7 +93,7 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 - GSAP settings in `src/utils/motion.ts`: easing, duration, distances, staggers, scroll start, and named presets (`fade`, `fade-up`, `fade-down`, `fade-left`, `fade-right`, `scale`).
 - Import GSAP only from `src/utils/gsap.ts` (plugins registered once, defaults applied).
 - `utility/Motion.astro` (in the layout) animates by data attribute, so components need no script for entrances:
-  - `reveal="lines" | "words" | "chars"` (+ `revealDelay`) on `Heading`/`Paragraph`: SplitText, each part fades up, no overflow mask.
+  - `reveal="lines" | "words" | "chars"` (+ `revealDelay`) on `Heading`/`Paragraph`: SplitText, each part fades up, no overflow mask. Text splits only after the fonts load (capped at 1s), because splitting in the fallback font and re-splitting restarts the animation mid-flight. Parts get `will-change` only while moving. Don't put big `text-shadow`s on revealed text: every moving line repaints its blur. Use a static shade behind the text instead (see `HeroHome`). No 3D tilt either: perspective on a wide line shears its far end into fake italics.
   - `data-animate="fade-up"` on any element; add `data-animate-children` to stagger its children, `data-animate-delay="0.2"` to wait.
   - Above the fold plays on load, below it plays once on scroll. Reduced motion shows everything at rest.
 - Never use a top-level `await` in a component script: Astro bundles a page's scripts into one module, so it would delay every other script.
@@ -102,9 +102,9 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 
 **Mobile menu:** a dark panel only as tall as its content (scrolls if taller than the screen) that wipes down from the bar, 18px links staggering in, Resource Hub as an accordion in the dark theme, page blurred and scroll locked behind it.
 
-**Background video** (`media/BackgroundVideo.astro`): sits over a poster image and fades in once playing, so the image stays the first paint. Loads only near the screen, never for reduced motion or data saver. `playback="visible"` plays while on screen; `"manual"` leaves play/pause to a parent script.
+**Background video** (`media/BackgroundVideo.astro`): sits over a poster image and fades in once playing, so the image stays the first paint. Loads only near the screen, never for reduced motion or data saver. `delay` (ms after page load) keeps it from competing with an intro; the hero uses 1600. `playback="visible"` plays while on screen; `"manual"` leaves play/pause to a parent script.
 
-**Decisions scroll** (`section/DecisionsScroll.astro`): the section is tall and its stage sticks under the nav; each word owns an equal slice of the scroll (`--_step-scroll: 45svh`). The active word gets the caret and slides across, the background crossfades, and Supply/Transportation play their videos only while active. Words are buttons that scroll to their slice. Copy sits at the content inset (104px) rather than Figma's 136px, to line up with every other section.
+**Decisions scroll** (`section/DecisionsScroll.astro`): the section is tall and its stage sticks under the nav; each word owns an equal slice of the scroll (`--_step-scroll: 30svh`). The active word gets the caret and slides across. The new visual wipes in with a clip-path from the side you scroll towards (bottom going down, top going up) and settles from 112% scale, while the outgoing one stays underneath drifting 6% the other way, like a slide change. Supply/Transportation play their videos only while active. Words are buttons that scroll to their slice. Copy sits at the content inset (104px) rather than Figma's 136px, to line up with every other section.
 
 **Nav dropdown** (`NavDropdown.astro`): Resource Hub mega menu, content copied from the live site (Figma has no design for it). Opens on hover with a short close delay on desktop, on click or Enter everywhere, closes on Escape or when focus leaves. The page behind blurs. In the mobile menu it becomes an accordion.
 
@@ -115,8 +115,8 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 | Token | Mobile (375) | Desktop (1440) | What sits there |
 | --- | --- | --- | --- |
 | `--site-margin` | 16 | 64 | The rails |
-| `--site-margin` + `--content-inset` | 32 | 104 | Section content |
-| `--site-margin` + `--edge-inset` | 32 | 80 | Nav and hero content |
+| `--site-margin` + `--content-inset` | 28 | 104 | Content inside railed sections |
+| `--site-margin` + `--edge-inset` | 16 | 80 | Nav, hero and full-bleed sections (on mobile they sit on the rail line, like the live site) |
 
 `--max-width-main` is 82rem (1312px, rail to rail). Nav switches to the desktop bar at `72rem`: seven links plus the button don't fit at the `64rem` Grid breakpoint.
 
@@ -153,6 +153,7 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 - Hero headline waits for GSAP to reveal it, which may cost a little LCP. Revisit when measuring Lighthouse.
 - Hero image and the 6 decision visuals are 1x Figma stand-ins until Fazlu runs `npm run fetch-assets`.
 - Decisions section on mobile: full-width shade added (Figma has no mobile), words at h3 size.
+- In a list, never style "item after item" with `li + li`: Astro renders a component's `<script>` where the component sits, which can land between list items. Use `li:not(:first-of-type)`.
 - Dropdown has no Figma design; layout and copy follow the live site. Confirm with the designer.
 - Nav gaps are 28px (logo, divider, links). Not a token; kept as `1.75rem`.
 - Section headline line heights vary on the page (48/50, 48/52, 48/56). Consolidated to 1.1 for h2.
