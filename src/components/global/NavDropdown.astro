@@ -124,7 +124,7 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
     }
 
     .nav_dd_chevron.icon {
-      --_size: 1.25rem;
+      --_size: 1rem;
       transition: rotate var(--open-duration) var(--open-ease);
     }
 
@@ -196,12 +196,12 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
       flex: none;
       align-items: center;
       justify-content: center;
-      width: 3rem;
-      height: 3rem;
+      width: 2.5rem;
+      height: 2.5rem;
       border: var(--border-width) solid var(--border);
       background-color: var(--_icon-background, var(--background-2));
       & .icon {
-        --_size: 1.5rem;
+        --_size: 1.25rem;
       }
     }
 
@@ -212,7 +212,7 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
     }
 
     .nav_dd_list {
-      font-size: var(--text-main);
+      font-size: var(--text-small);
       line-height: 1.5;
     }
 
@@ -220,7 +220,6 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
       display: flex;
       align-items: center;
       gap: var(--space-1);
-      font-size: var(--text-main);
       font-weight: var(--primary-medium);
       line-height: 1.5;
     }
@@ -236,7 +235,7 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
     .nav_dd_text {
       color: var(--text-2);
-      font-size: var(--text-small);
+      font-size: 0.8125rem;
       line-height: 1.43;
     }
 
@@ -313,6 +312,19 @@ const id = `nav-dd-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
       .nav_dd_list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        font-size: var(--text-main);
+      }
+
+      .nav_dd_text {
+        font-size: var(--text-small);
+      }
+
+      .nav_dd_icon {
+        width: 3rem;
+        height: 3rem;
+        & .icon {
+          --_size: 1.5rem;
+        }
       }
     }
   }

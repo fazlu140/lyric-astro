@@ -192,7 +192,7 @@ const links: { label: string; href: string; badge?: string }[] = [
       z-index: 100;
       display: flex;
       justify-content: center;
-      padding-inline: calc(var(--site-margin) + var(--space-3));
+      padding-inline: calc(var(--site-margin) + var(--edge-inset));
       background-color: var(--background);
       color: var(--text);
       border-bottom: var(--border-width) solid var(--border);
@@ -205,7 +205,7 @@ const links: { label: string; href: string; badge?: string }[] = [
 
     .nav_inner {
       width: 100%;
-      max-width: calc(var(--max-width-main) - var(--space-3) * 2);
+      max-width: calc(var(--max-width-main) - var(--edge-inset) * 2);
       min-height: var(--nav-height);
       display: flex;
       align-items: center;
@@ -301,8 +301,9 @@ const links: { label: string; href: string; badge?: string }[] = [
       position: absolute;
       top: 100%;
       inset-inline: 0;
-      height: calc(100svh - var(--nav-height));
+      max-height: calc(100svh - var(--nav-height));
       overflow-y: auto;
+      border-bottom: var(--border-width) solid var(--border);
       overscroll-behavior: contain;
       visibility: hidden;
       background-color: var(--background);
@@ -329,25 +330,23 @@ const links: { label: string; href: string; badge?: string }[] = [
       overflow: hidden;
     }
 
-    .nav_menu_inner {
-      min-height: 100%;
-    }
-
     .nav_links {
       display: flex;
       flex-direction: column;
-      padding: var(--space-4) calc(var(--site-margin) + var(--space-3))
+      padding: var(--space-2) calc(var(--site-margin) + var(--edge-inset))
         var(--space-8);
-      font-size: 1.5rem;
+      font-size: var(--text-large);
       font-weight: var(--primary-medium);
-      line-height: 1.2;
+      line-height: 1.3;
       & > li {
-        border-bottom: var(--border-width) solid var(--border);
         opacity: 0;
         translate: 0 0.75rem;
         transition:
           opacity 0.3s var(--hover-ease),
           translate 0.3s var(--hover-ease);
+      }
+      & > li + li {
+        border-top: var(--border-width) solid var(--border);
       }
       & > li:nth-child(2) { --_i: 1; }
       & > li:nth-child(3) { --_i: 2; }
@@ -371,7 +370,7 @@ const links: { label: string; href: string; badge?: string }[] = [
       align-items: center;
       gap: var(--space-2);
       width: 100%;
-      padding-block: var(--space-4);
+      padding-block: var(--space-3);
       color: var(--plum-10);
       letter-spacing: var(--letter-spacing-tight);
       text-decoration: none;
@@ -427,7 +426,7 @@ const links: { label: string; href: string; badge?: string }[] = [
         inset: auto;
         align-self: stretch;
         display: flex;
-        height: auto;
+        max-height: none;
         overflow: visible;
         visibility: visible;
         clip-path: none;
@@ -452,8 +451,9 @@ const links: { label: string; href: string; badge?: string }[] = [
         font-size: var(--text-small);
         font-weight: var(--primary-regular);
         line-height: 1.5714;
-        & > li {
-          border-bottom: 0;
+        & > li,
+        & > li + li {
+          border-top: 0;
           opacity: 1;
           translate: none;
           transition: none;
