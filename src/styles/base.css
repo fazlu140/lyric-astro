@@ -242,6 +242,11 @@
   --content-inset-min: 12;
   --content-inset-max: 40;
 
+  /* The framed strip between sections (live site: 31 to 50px) */
+  --band-height: clamp(var(--band-height-min) / 16 * 1rem, ((var(--band-height-min) - ((var(--band-height-max) - var(--band-height-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--band-height-max) - var(--band-height-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--band-height-max) / 16 * 1rem);
+  --band-height-min: 30;
+  --band-height-max: 50;
+
   /* Nav, hero and full-bleed sections: on the rail line on mobile, 16px in on desktop */
   --edge-inset: clamp(var(--edge-inset-min) / 16 * 1rem, ((var(--edge-inset-min) - ((var(--edge-inset-max) - var(--edge-inset-min)) / (var(--viewport-max) - var(--viewport-min)) * var(--viewport-min))) / 16 * 1rem + ((var(--edge-inset-max) - var(--edge-inset-min)) / (var(--viewport-max) - var(--viewport-min))) * 100vw), var(--edge-inset-max) / 16 * 1rem);
   --edge-inset-min: 0;

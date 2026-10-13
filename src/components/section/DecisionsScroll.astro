@@ -265,7 +265,7 @@ const steps = [
       );
     }
 
-    @media (width >= 48rem) {
+    @media (width >= 62rem) {
       .decisions_shade {
         width: 81%;
         background-image: linear-gradient(
@@ -384,9 +384,16 @@ const steps = [
       }
     }
 
+    /* Tablets keep the stacked layout: two columns only once the longest
+       word ("Transportation") fits beside the copy at full size */
     @media (width >= 48rem) {
       .decisions_layout {
         padding-inline: var(--content-inset);
+      }
+    }
+
+    @media (width >= 62rem) {
+      .decisions_layout {
         grid-template-columns: minmax(0, 0.617fr) minmax(0, 1fr);
         grid-template-rows: none;
       }

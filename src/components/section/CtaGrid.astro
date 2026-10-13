@@ -30,7 +30,7 @@ const litCells = [
 <Section
   render={render}
   theme="dark"
-  borders="both"
+  borders="frame"
   paddingTop="none"
   paddingBottom="none"
   class="cta_wrap"
@@ -52,6 +52,7 @@ const litCells = [
     </div>
 
     <div class="cta_card">
+      <div class="cta_card-inner">
       <Heading class="cta_title" reveal="lines">
         Deliver Better
         <br />
@@ -65,12 +66,32 @@ const litCells = [
       <div data-animate="fade-up" data-animate-delay="0.3">
         <Button element="link" href={href}>{buttonText}</Button>
       </div>
+      </div>
     </div>
   </div>
 </Section>
 
 <script>
   import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
+
+  /* Below desktop the card sets the height: round it up to whole cells so
+     the grid lines meet its edges. Runs with or without motion. */
+  for (const grid of document.querySelectorAll<HTMLElement>("[data-cta-grid]")) {
+    const card = grid.querySelector<HTMLElement>(".cta_card")!;
+    const content = grid.querySelector<HTMLElement>(".cta_card-inner")!;
+    const desktop = window.matchMedia("(width >= 80rem)");
+    const snap = () => {
+      if (desktop.matches) {
+        card.style.minHeight = "";
+        return;
+      }
+      const cols = parseInt(getComputedStyle(grid).getPropertyValue("--_cols"), 10) || 8;
+      const cell = grid.clientWidth / cols;
+      card.style.minHeight = `${Math.ceil(content.offsetHeight / cell) * cell}px`;
+    };
+    new ResizeObserver(snap).observe(content);
+    desktop.addEventListener("change", snap);
+  }
 
   for (const grid of document.querySelectorAll<HTMLElement>("[data-cta-grid]")) {
     if (reducedMotion()) continue;
@@ -223,7 +244,7 @@ const litCells = [
       }
     }
 
-    /* Lit cells and connectors belong to the 20-column desktop grid */
+    /* Lit cells and connectors belong to the 20-column grid (80rem up) */
     .cta_cell.is-static,
     .cta_links,
     .cta_dot {
@@ -257,20 +278,28 @@ const litCells = [
 
     .cta_card {
       position: relative;
+      display: grid;
+      align-items: center;
+      margin-inline: var(--_cell);
+      background-color: var(--grey-900);
+    }
+
+    .cta_card-inner {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       gap: var(--space-4);
-      margin-inline: var(--_cell);
-      padding: var(--space-7) var(--space-5);
-      background-color: var(--grey-900);
+      padding: var(--space-6) var(--space-4);
       text-align: center;
     }
 
     .cta_title,
     .cta_text {
       margin: 0;
+    }
+
+    .cta_title {
+      font-size: var(--h3);
     }
 
     .cta_text {
@@ -280,7 +309,33 @@ const litCells = [
       font-weight: var(--primary-medium);
     }
 
+    @media (width >= 48rem) {
+      .cta_grid {
+        --_cols: 12;
+      }
+
+      .cta_card {
+        margin-inline: calc(var(--_cell) * 2);
+      }
+
+      .cta_title {
+        font-size: var(--h2);
+      }
+    }
+
+    /* Small laptops: 16 columns, card still in the flow */
     @media (width >= 62rem) {
+      .cta_grid {
+        --_cols: 16;
+      }
+
+      .cta_card {
+        margin-inline: calc(var(--_cell) * 3);
+      }
+    }
+
+    /* Figma's layout once a 6-cell card is tall enough for its copy */
+    @media (width >= 80rem) {
       .cta_grid {
         --_cols: 20;
         aspect-ratio: 20 / 8;

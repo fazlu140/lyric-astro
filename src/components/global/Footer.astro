@@ -1,6 +1,7 @@
 ---
 import Icon from "@/components/media/Icon.astro";
 import DisperseGraphic from "@/components/media/DisperseGraphic.astro";
+import SectionBand from "@/components/wrapper/SectionBand.astro";
 import logo from "@/assets/logo/logo.svg";
 import chatgpt from "@/assets/icons/ai/chatgpt.svg";
 import claude from "@/assets/icons/ai/claude.svg";
@@ -68,6 +69,7 @@ const year = new Date().getFullYear();
 {
   render && (
     <footer class="footer_wrap theme-dark">
+      <SectionBand />
       <div class="footer_row footer_row-top">
         <div class="footer_inner footer_brand">
           <a class="footer_logo" href="/" aria-label={`${SITE_NAME} home`}>
@@ -160,6 +162,7 @@ const year = new Date().getFullYear();
           </ul>
         </div>
       </div>
+      <SectionBand />
     </footer>
   )
 }
@@ -177,9 +180,9 @@ const year = new Date().getFullYear();
        footer doesn't depend on the page using one */
     .footer_wrap {
       position: relative;
+      overflow-x: clip;
       background-color: var(--background);
       color: var(--text);
-      border-top: var(--border-width) solid var(--border);
       &::after {
         content: "";
         position: absolute;
@@ -198,9 +201,12 @@ const year = new Date().getFullYear();
       display: flex;
       justify-content: center;
       padding-inline: var(--site-margin);
-      &:not(:last-child) {
-        border-bottom: var(--border-width) solid var(--border);
-      }
+      border-bottom: var(--border-width) solid var(--border);
+    }
+
+    /* The closing band shares the last row's line */
+    .footer_row + .section-band {
+      border-top: 0;
     }
 
     .footer_inner {
@@ -357,15 +363,29 @@ const year = new Date().getFullYear();
       color: var(--white);
     }
 
+    /* Copyright and socials stay on one line, as on the live site */
+    .footer_legal {
+      flex-wrap: nowrap;
+    }
+
     .footer_copyright {
       margin: 0;
       color: var(--text-2);
+      font-size: var(--text-small);
+      @media (width >= 48rem) {
+        font-size: var(--text-main);
+      }
     }
 
-    @media (width >= 48rem) {
+    @media (width >= 40rem) {
+      .footer_nav {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (width >= 62rem) {
       .footer_main {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-        padding-block: var(--space-7) var(--space-7);
       }
 
       .footer_nav {

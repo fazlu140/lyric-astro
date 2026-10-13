@@ -23,7 +23,7 @@ const consumer = pickAsset(images, "consumer-zone");
 <Section
   render={render}
   theme="light"
-  borders="both"
+  borders="frame"
   paddingTop="small"
   paddingBottom="small"
   class="zones_wrap"
@@ -54,7 +54,7 @@ const consumer = pickAsset(images, "consumer-zone");
         sizes="(width >= 82rem) 73rem, 92vw"
         loading="lazy"
       />
-      <figcaption class="zones_chip">The Creator Zone</figcaption>
+      <figcaption class="zones_chip"><span class="zones_chip-the">The </span>Creator Zone</figcaption>
     </figure>
     <figure class="zones_side zones_consumer">
       <Img
@@ -67,7 +67,7 @@ const consumer = pickAsset(images, "consumer-zone");
         sizes="(width >= 82rem) 73rem, 92vw"
         loading="lazy"
       />
-      <figcaption class="zones_chip">The Consumer Zone</figcaption>
+      <figcaption class="zones_chip"><span class="zones_chip-the">The </span>Consumer Zone</figcaption>
     </figure>
     <div
       class="zones_handle"
@@ -274,6 +274,13 @@ const consumer = pickAsset(images, "consumer-zone");
       right: 0;
       border-right: 0;
       border-left: var(--border-width) solid var(--grey-80);
+    }
+
+    /* Narrow phones: "Creator Zone", so the two chips never meet */
+    @media (width < 30rem) {
+      .zones_chip-the {
+        display: none;
+      }
     }
 
     .zones_compare.is-creator-hidden .zones_creator .zones_chip,

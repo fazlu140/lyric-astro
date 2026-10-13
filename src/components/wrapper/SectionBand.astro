@@ -1,0 +1,50 @@
+---
+interface Props {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Color theme, matching the section it opens. */
+  theme?: "inherit" | "light" | "dark" | "brand";
+}
+
+const { render = true, theme = "inherit" } = Astro.props;
+---
+
+{/*
+  The framed strip that opens a section: a line above and below, crossed by
+  the rails, so the margins outside the rails read as boxes. Same as the
+  live site's section_border-top, drawn with one element.
+*/}
+{
+  render && (
+    <div
+      class:list={["section-band", theme !== "inherit" && `theme-${theme}`]}
+      aria-hidden="true"
+    />
+  )
+}
+
+<style is:global>
+  @layer components {
+    .section-band {
+      position: relative;
+      height: var(--band-height);
+      background-color: var(--background);
+      border-block: var(--border-width) solid var(--border);
+      &::after {
+        content: "";
+        position: absolute;
+        inset-block: calc(var(--border-width) * -1);
+        left: 50%;
+        width: min(var(--site-width), var(--max-width-main));
+        translate: -50% 0;
+        border-inline: var(--border-width) solid var(--border);
+        pointer-events: none;
+      }
+    }
+
+    /* The band's bottom line is the section's top line */
+    .section-band + .section-border-top::before {
+      display: none;
+    }
+  }
+</style>

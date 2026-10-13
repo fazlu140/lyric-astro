@@ -26,7 +26,7 @@ const {
 <Section
   render={render && stories.length > 0}
   theme="dark"
-  borders="both"
+  borders="frame"
   paddingTop="medium"
   paddingBottom="medium"
   class="stories_wrap"
@@ -54,7 +54,7 @@ const {
       </div>
     </div>
 
-    <ul class="stories_track" aria-label="Customer stories" data-animate="fade-left" data-animate-delay="0.1">
+    <ul class="stories_track" aria-label="Customer stories" data-animate="fade-up" data-animate-delay="0.1">
       {stories.map((story, i) => (
         <li class="stories_item">
           <a class="stories_card" href={story.href}>
@@ -63,10 +63,10 @@ const {
                 class="stories_image"
                 src={story.image.src}
                 alt=""
-                width={640}
-                height={780}
+                width={Math.min(900, story.image.width)}
+                height={Math.round((Math.min(900, story.image.width) / story.image.width) * story.image.height)}
                 variant="constrained"
-                sizes="(width >= 48rem) 20rem, 88vw"
+                sizes="(width >= 62rem) 20rem, (width >= 48rem) 22rem, 82vw"
                 loading={i < 2 ? "eager" : "lazy"}
               />
             </span>
@@ -96,7 +96,7 @@ const {
 </Section>
 
 <script>
-  import { reducedMotion } from "@/utils/gsap.ts";
+  import { gsap, reducedMotion } from "@/utils/gsap.ts";
 
   const AUTOPLAY_MS = 5000;
 
@@ -106,25 +106,36 @@ const {
     const next = slider.querySelector<HTMLButtonElement>("[data-stories-next]")!;
     const items = [...track.children] as HTMLElement[];
 
-    /* Index of the card nearest the start edge */
-    const current = () => {
-      const start = track.scrollLeft;
-      let best = 0;
-      items.forEach((item, i) => {
-        if (Math.abs(item.offsetLeft - items[0].offsetLeft - start) <
-          Math.abs(items[best].offsetLeft - items[0].offsetLeft - start)) best = i;
-      });
-      return best;
+    /* Card start positions, as scroll offsets, capped at the end of the track */
+    const stops = () => {
+      const max = track.scrollWidth - track.clientWidth;
+      return items.map((item) => Math.min(max, item.offsetLeft - items[0].offsetLeft));
+    };
+
+    /* Index of the card nearest a scroll position */
+    const nearest = (left = track.scrollLeft) => {
+      const all = stops();
+      return all.reduce((best, x, i) => (Math.abs(x - left) < Math.abs(all[best] - left) ? i : best), 0);
     };
 
     const atEnd = () => track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
 
-    const go = (index: number) => {
-      const target = items[Math.max(0, Math.min(items.length - 1, index))];
-      track.scrollTo({
-        left: target.offsetLeft - items[0].offsetLeft,
-        behavior: reducedMotion() ? "auto" : "smooth",
+    /* Arrows, autoplay and drag all glide with the same easing. Snapping is
+       off while GSAP moves the track, so the browser never jumps ahead. */
+    let tween: ReturnType<typeof gsap.to> | null = null;
+    const glide = (left: number, duration = 0.7) => {
+      tween?.kill();
+      track.classList.add("is-gliding");
+      tween = gsap.to(track, {
+        scrollLeft: left,
+        duration: reducedMotion() ? 0 : duration,
+        ease: "power3.out",
+        onComplete: () => track.classList.remove("is-gliding"),
       });
+    };
+    const go = (index: number) => {
+      const all = stops();
+      glide(all[Math.max(0, Math.min(all.length - 1, index))]);
     };
 
     const update = () => {
@@ -134,41 +145,59 @@ const {
 
     prev.addEventListener("click", () => {
       stop();
-      go(current() - 1);
+      go(nearest() - 1);
     });
     next.addEventListener("click", () => {
       stop();
-      go(current() + 1);
+      go(nearest() + 1);
     });
     track.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
     update();
 
-    /* Mouse drag, as on touch. Snapping waits until the drag ends, and a
-       drag never counts as a click on the card under it. */
-    let dragStart: { x: number; left: number } | null = null;
+    /* Mouse drag follows the pointer 1:1, then carries on with the speed of
+       the throw and settles on the card it lands nearest. A drag never
+       counts as a click on the card under it. */
+    let drag: { x: number; left: number; lastX: number; lastT: number; v: number } | null = null;
     let dragged = false;
     track.addEventListener("pointerdown", (event) => {
       if (event.pointerType !== "mouse" || event.button !== 0) return;
-      dragStart = { x: event.clientX, left: track.scrollLeft };
+      tween?.kill();
+      drag = { x: event.clientX, left: track.scrollLeft, lastX: event.clientX, lastT: performance.now(), v: 0 };
       dragged = false;
     });
     window.addEventListener("pointermove", (event) => {
-      if (!dragStart) return;
-      const dx = event.clientX - dragStart.x;
+      if (!drag) return;
+      const dx = event.clientX - drag.x;
       if (!dragged && Math.abs(dx) > 6) {
         dragged = true;
         stop();
         track.classList.add("is-dragging");
       }
-      if (dragged) track.scrollLeft = dragStart.left - dx;
+      if (!dragged) return;
+      const now = performance.now();
+      const dt = Math.max(1, now - drag.lastT);
+      /* Smoothed speed in px per ms */
+      drag.v = drag.v * 0.6 + ((event.clientX - drag.lastX) / dt) * 0.4;
+      drag.lastX = event.clientX;
+      drag.lastT = now;
+      track.scrollLeft = drag.left - dx;
     });
     window.addEventListener("pointerup", () => {
-      if (!dragStart) return;
-      dragStart = null;
+      if (!drag) return;
+      const { v } = drag;
+      drag = null;
       if (!dragged) return;
       track.classList.remove("is-dragging");
-      go(current());
+      /* Project where the throw would carry the track, then land on a card */
+      const projected = track.scrollLeft - v * 260;
+      const from = nearest();
+      let index = nearest(projected);
+      if (index === from && Math.abs(v) > 0.35) index += v < 0 ? 1 : -1;
+      const all = stops();
+      index = Math.max(0, Math.min(all.length - 1, index));
+      const distance = Math.abs(all[index] - track.scrollLeft);
+      glide(all[index], Math.min(0.9, Math.max(0.45, distance / 1400)));
     });
     track.addEventListener("click", (event) => {
       if (dragged) event.preventDefault();
@@ -190,7 +219,7 @@ const {
     const sync = () => {
       window.clearInterval(timer);
       if (stopped || paused || !visible || document.hidden) return;
-      timer = window.setInterval(() => (atEnd() ? go(0) : go(current() + 1)), AUTOPLAY_MS);
+      timer = window.setInterval(() => (atEnd() ? go(0) : go(nearest() + 1)), AUTOPLAY_MS);
     };
 
     new IntersectionObserver(([entry]) => {
@@ -215,15 +244,17 @@ const {
       align-self: stretch;
       display: flex;
       flex-direction: column;
-      gap: var(--space-8);
+      gap: var(--space-7);
       min-width: 0;
     }
 
+    /* Phones: title, then the arrows on their own row (as on the live site) */
     .stories_head {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
+      align-items: end;
       justify-content: space-between;
-      gap: var(--space-5);
+      gap: var(--space-4) var(--space-5);
     }
 
     .stories_title {
@@ -233,37 +264,39 @@ const {
     .stories_controls {
       display: flex;
       flex: none;
-      gap: var(--space-3);
+      gap: var(--space-2);
+      margin-left: auto;
     }
 
     .button_wrap.stories_arrow {
-      width: 3rem;
-      height: 3rem;
+      width: 2.5rem;
+      height: 2.5rem;
       padding: 0;
       border-radius: 0;
       & .button_mark {
-        --_size: 1.25rem;
+        --_size: 1.125rem;
       }
     }
 
-    /* Runs rail to rail: the first card lines up with the copy, the rest
-       slide out under the right rail */
+    /* Runs from the content edge to the right rail: cards slide out under the
+       rail on the right and vanish at the content line on the left */
     .stories_track {
       display: flex;
       gap: var(--space-3);
-      margin: 0 calc(var(--content-inset) * -1);
-      padding: 0 var(--content-inset);
+      margin-right: calc(var(--content-inset) * -1);
+      padding-right: var(--content-inset);
       overflow-x: auto;
       overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
-      scroll-padding-inline: var(--content-inset);
       scrollbar-width: none;
       list-style: none;
       &::-webkit-scrollbar {
         display: none;
       }
-      &.is-dragging {
+      &:is(.is-dragging, .is-gliding) {
         scroll-snap-type: none;
+      }
+      &.is-dragging {
         cursor: grabbing;
         & * {
           pointer-events: none;
@@ -273,10 +306,11 @@ const {
 
     .stories_item {
       flex: none;
-      width: min(88%, 22rem);
+      width: min(82%, 21rem);
       scroll-snap-align: start;
     }
 
+    /* Stacked card: photo, title, then logo and button along the bottom */
     .stories_card {
       display: flex;
       flex-direction: column;
@@ -293,8 +327,8 @@ const {
       position: relative;
       display: block;
       flex: none;
-      aspect-ratio: 16 / 11;
-      overflow: clip;
+      aspect-ratio: 3 / 2;
+      overflow: hidden;
     }
 
     .stories_image {
@@ -312,22 +346,24 @@ const {
       flex-direction: column;
       justify-content: space-between;
       gap: var(--space-6);
-      padding: var(--space-5);
+      padding: var(--space-4);
     }
 
     .stories_top {
+      order: 2;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: var(--space-4);
-      min-height: 3rem;
+      gap: var(--space-3);
+      min-height: 2.5rem;
     }
 
     .stories_logo {
       width: auto;
-      max-width: 9rem;
+      min-width: 0;
+      max-width: 7rem;
       height: auto;
-      max-height: 2.5rem;
+      max-height: 2rem;
       object-fit: contain;
     }
 
@@ -336,10 +372,11 @@ const {
       flex: none;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.75rem 1rem;
+      padding: 0.625rem 0.875rem;
       border: var(--border-width) solid var(--white);
       font-size: var(--text-small);
       line-height: 1.2;
+      white-space: nowrap;
       transition:
         background-color var(--hover-duration) var(--hover-ease),
         color var(--hover-duration) var(--hover-ease);
@@ -350,6 +387,7 @@ const {
     }
 
     .stories_card-title {
+      order: 1;
       font-size: var(--h4);
       font-weight: var(--primary-medium);
       line-height: 1.35;
@@ -370,13 +408,36 @@ const {
       }
     }
 
-    /* Desktop: Figma's wide card, photo on the left */
     @media (width >= 48rem) {
+      .stories_head {
+        flex-wrap: nowrap;
+        align-items: center;
+      }
+
       .stories_track {
         gap: var(--space-4);
         cursor: grab;
       }
 
+      .button_wrap.stories_arrow {
+        width: 3rem;
+        height: 3rem;
+        & .button_mark {
+          --_size: 1.25rem;
+        }
+      }
+
+      .stories_item {
+        width: 22rem;
+      }
+
+      .stories_content {
+        padding: var(--space-5);
+      }
+    }
+
+    /* Desktop: Figma's wide card, photo on the left, logo and button on top */
+    @media (width >= 62rem) {
       .stories_item {
         width: min(80%, 51.8125rem);
       }
@@ -395,7 +456,22 @@ const {
         padding: 2.25rem;
       }
 
+      .stories_top {
+        order: 0;
+        min-height: 3rem;
+      }
+
+      .stories_logo {
+        max-width: 9rem;
+        max-height: 2.5rem;
+      }
+
+      .stories_read {
+        padding: 0.75rem 1rem;
+      }
+
       .stories_card-title {
+        order: 0;
         max-width: 27.3125rem;
         font-size: var(--h3);
         line-height: 1.44;
