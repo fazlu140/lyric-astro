@@ -1,5 +1,5 @@
 ---
-import Section from "@/components/wrapper/Section.astro";
+import GridFrame from "@/components/wrapper/GridFrame.astro";
 import Heading from "@/components/typography/Heading.astro";
 import Paragraph from "@/components/typography/Paragraph.astro";
 import Button from "@/components/Button.astro";
@@ -17,7 +17,7 @@ const { render = true, href = "/demo", buttonText = "Book a demo" } = Astro.prop
 
 /* Lit cells and connectors on the 20 by 8 desktop grid, from Figma
    (column, row, counted from 0). */
-const litCells = [
+const lit: [number, number][] = [
   [2, 1],
   [17, 1],
   [1, 3],
@@ -27,313 +27,35 @@ const litCells = [
 ];
 ---
 
-<Section
-  render={render}
-  theme="dark"
-  borders="frame"
-  paddingTop="none"
-  paddingBottom="none"
-  class="cta_wrap"
-  containerClass="cta_layout"
->
-  <div class="cta_grid" data-cta-grid>
-    <div class="cta_cells" aria-hidden="true">
-      {litCells.map(([c, r], i) => (
-        <span class="cta_cell is-static" style={`--_c: ${c}; --_r: ${r}; --_i: ${i}`} />
-      ))}
-      <svg class="cta_links" viewBox="0 0 20 8">
-        <path pathLength="1" d="M2 1.5H1.5V3" />
-        <path pathLength="1" d="M18.5 4V5.5H17" />
-      </svg>
-      <span class="cta_dot" style="--_x: 2; --_y: 1.5"></span>
-      <span class="cta_dot" style="--_x: 1.5; --_y: 3"></span>
-      <span class="cta_dot" style="--_x: 18.5; --_y: 4"></span>
-      <span class="cta_dot" style="--_x: 17; --_y: 5.5"></span>
-    </div>
+<GridFrame render={render} theme="dark" rows={8} card={[5, 1, 10, 6]} lit={lit} cardClass="cta_card">
+  <Fragment slot="layer">
+    <svg class="grid-frame_links" viewBox="0 0 20 8">
+      <path pathLength="1" d="M2 1.5H1.5V3" />
+      <path pathLength="1" d="M18.5 4V5.5H17" />
+    </svg>
+    <span class="grid-frame_dot" style="--_x: 2; --_y: 1.5"></span>
+    <span class="grid-frame_dot" style="--_x: 1.5; --_y: 3"></span>
+    <span class="grid-frame_dot" style="--_x: 18.5; --_y: 4"></span>
+    <span class="grid-frame_dot" style="--_x: 17; --_y: 5.5"></span>
+  </Fragment>
 
-    <div class="cta_card">
-      {/* Plus marks on the four corners, as on the live site */}
-      {["tl", "tr", "bl", "br"].map((corner) => (
-        <svg class:list={["cta_plus", `is-${corner}`]} viewBox="0 0 20 20" aria-hidden="true">
-          <path d="M10 0v20M20 10H0" />
-        </svg>
-      ))}
-      <div class="cta_card-inner">
-      <Heading class="cta_title" reveal="lines">
-        Deliver Better
-        <br />
-        Decisions Faster
-      </Heading>
-      <Paragraph class="cta_text" reveal="lines" revealDelay={0.15}>
-        Supply chains run on thousands of interconnected decisions. Demand shapes
-        production. Inventory affects transportation. Every choice influences
-        another. Every decision matters.
-      </Paragraph>
-      <div data-animate="fade-up" data-animate-delay="0.3">
-        <Button element="link" href={href}>{buttonText}</Button>
-      </div>
-      </div>
-    </div>
+  <Heading class="cta_title" reveal="lines">
+    Deliver Better
+    <br />
+    Decisions Faster
+  </Heading>
+  <Paragraph class="cta_text" reveal="lines" revealDelay={0.15}>
+    Supply chains run on thousands of interconnected decisions. Demand shapes
+    production. Inventory affects transportation. Every choice influences
+    another. Every decision matters.
+  </Paragraph>
+  <div data-animate="fade-up" data-animate-delay="0.3">
+    <Button element="link" href={href}>{buttonText}</Button>
   </div>
-</Section>
-
-<script>
-  import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
-
-  /* Below desktop the card sets the height: round it up to whole cells so
-     the grid lines meet its edges. Runs with or without motion. */
-  for (const grid of document.querySelectorAll<HTMLElement>("[data-cta-grid]")) {
-    const card = grid.querySelector<HTMLElement>(".cta_card")!;
-    const content = grid.querySelector<HTMLElement>(".cta_card-inner")!;
-    const desktop = window.matchMedia("(width >= 62rem)");
-    const snap = () => {
-      if (desktop.matches) {
-        card.style.minHeight = "";
-        return;
-      }
-      const cols = parseInt(getComputedStyle(grid).getPropertyValue("--_cols"), 10) || 8;
-      const cell = grid.clientWidth / cols;
-      card.style.minHeight = `${Math.ceil(content.offsetHeight / cell) * cell}px`;
-    };
-    new ResizeObserver(snap).observe(content);
-    desktop.addEventListener("change", snap);
-  }
-
-  for (const grid of document.querySelectorAll<HTMLElement>("[data-cta-grid]")) {
-    if (reducedMotion()) continue;
-
-    const layer = grid.querySelector<HTMLElement>(".cta_cells")!;
-    const card = grid.querySelector<HTMLElement>(".cta_card")!;
-
-    /* Entrance: lit cells switch on one by one, then the connectors draw */
-    const intro = gsap.timeline({ paused: true });
-    intro
-      .from(grid.querySelectorAll(".cta_cell.is-static"), {
-        opacity: 0,
-        duration: 0.5,
-        stagger: { each: 0.12, from: "random" },
-      })
-      .fromTo(
-        grid.querySelectorAll(".cta_links path"),
-        { strokeDasharray: 1, strokeDashoffset: 1 },
-        { strokeDashoffset: 0, autoRound: false, duration: 0.8, ease: "power2.inOut", stagger: 0.2 },
-        "-=0.2",
-      )
-      .from(grid.querySelectorAll(".cta_dot"), { scale: 0, duration: 0.3, stagger: 0.1 }, "<")
-      .from(
-        grid.querySelectorAll(".cta_plus"),
-        { scale: 0, rotate: -90, transformOrigin: "50% 50%", duration: 0.5, stagger: 0.08 },
-        0,
-      );
-    ScrollTrigger.create({ trigger: grid, start: "top 75%", once: true, onEnter: () => intro.play() });
-
-    /* Grid size in cells, read from CSS so it follows the breakpoints */
-    const size = () => {
-      const cols = parseInt(getComputedStyle(grid).getPropertyValue("--_cols"), 10) || 8;
-      const cell = grid.clientWidth / cols;
-      return {
-        cell,
-        cols,
-        rows: Math.floor(grid.clientHeight / cell),
-      };
-    };
-
-    /* Cells under the card don't light up */
-    const covered = (c: number, r: number, cell: number) => {
-      const box = card.getBoundingClientRect();
-      const origin = grid.getBoundingClientRect();
-      const x = origin.left + (c + 0.5) * cell;
-      const y = origin.top + (r + 0.5) * cell;
-      return x > box.left && x < box.right && y > box.top && y < box.bottom;
-    };
-
-    const flash = (c: number, r: number, kind: "pointer" | "ambient") => {
-      const cell = document.createElement("span");
-      cell.className = `cta_cell is-${kind}`;
-      cell.style.cssText = `--_c: ${c}; --_r: ${r}`;
-      cell.addEventListener("animationend", () => cell.remove(), { once: true });
-      layer.append(cell);
-    };
-
-    /* The cell under the pointer lights up and fades behind it */
-    let lastKey = "";
-    grid.addEventListener("pointermove", (event) => {
-      if (event.pointerType !== "mouse") return;
-      const { cell } = size();
-      const box = grid.getBoundingClientRect();
-      const c = Math.floor((event.clientX - box.left) / cell);
-      const r = Math.floor((event.clientY - box.top) / cell);
-      const key = `${c}:${r}`;
-      if (key === lastKey || covered(c, r, cell)) return;
-      lastKey = key;
-      flash(c, r, "pointer");
-    });
-
-    /* Now and then a random cell comes online, only while in view */
-    let ambient = 0;
-    const startAmbient = () => {
-      window.clearInterval(ambient);
-      ambient = window.setInterval(() => {
-        if (document.hidden) return;
-        const { cell, cols, rows } = size();
-        for (let tries = 0; tries < 6; tries++) {
-          const c = Math.floor(Math.random() * cols);
-          const r = Math.floor(Math.random() * rows);
-          if (!covered(c, r, cell)) return flash(c, r, "ambient");
-        }
-      }, 900);
-    };
-    new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) startAmbient();
-      else window.clearInterval(ambient);
-    }).observe(grid);
-  }
-</script>
+</GridFrame>
 
 <style is:global>
   @layer components {
-    /* The container is the size query root, so 100cqw is the grid's own
-       width, rail to rail */
-    .section-border-sides > .cta_layout {
-      container-type: inline-size;
-      padding-inline: 0;
-    }
-
-    /* Square cells: 8 across on phones, 20 on desktop. One SVG tile draws
-       each cell's dashed top and left edge. */
-    .cta_grid {
-      --_cols: 8;
-      --_cell: calc(100cqw / var(--_cols));
-      position: relative;
-      width: 100%;
-      padding-block: calc(var(--_cell) * 1);
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='66' height='66' viewBox='0 0 66 66' preserveAspectRatio='none'%3E%3Cpath d='M0 .5H66M.5 0V66' stroke='%23393939' stroke-dasharray='4 4' fill='none' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
-      background-size: var(--_cell) var(--_cell);
-      overflow: clip;
-    }
-
-    .cta_cells {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-
-    .cta_cell {
-      position: absolute;
-      left: calc(var(--_c) * var(--_cell));
-      top: calc(var(--_r) * var(--_cell));
-      width: var(--_cell);
-      height: var(--_cell);
-      background-color: var(--grey-900);
-    }
-
-    .cta_cell.is-pointer {
-      background-color: var(--grey-800);
-      animation: cta-cell 0.9s var(--motion-ease-out) forwards;
-    }
-
-    .cta_cell.is-ambient {
-      animation: cta-cell-ambient 2.4s var(--motion-ease-in-out) forwards;
-    }
-
-    @keyframes cta-cell {
-      from {
-        opacity: 0.9;
-      }
-      to {
-        opacity: 0;
-      }
-    }
-
-    @keyframes cta-cell-ambient {
-      0%,
-      100% {
-        opacity: 0;
-      }
-      40% {
-        opacity: 1;
-      }
-    }
-
-    /* Lit cells and connectors belong to the 20-column desktop grid */
-    .cta_cell.is-static,
-    .cta_links,
-    .cta_dot {
-      display: none;
-    }
-
-    .cta_links {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-      & path {
-        fill: none;
-        stroke: var(--grey-700);
-        /* One cell is one unit, so this is a 1px line at 1312px wide */
-        stroke-width: 0.016;
-      }
-    }
-
-    .cta_dot {
-      position: absolute;
-      left: calc(var(--_x) * var(--_cell));
-      top: calc(var(--_y) * var(--_cell));
-      width: 0.375rem;
-      height: 0.375rem;
-      margin: -0.1875rem 0 0 -0.1875rem;
-      border-radius: 50%;
-      background-color: var(--grey-600);
-    }
-
-    .cta_card {
-      position: relative;
-      display: grid;
-      align-items: center;
-      /* Phones: inset two thirds of a cell, as on the live site */
-      margin-inline: calc(var(--_cell) * 0.67);
-      background-color: var(--grey-900);
-    }
-
-    .cta_plus {
-      position: absolute;
-      z-index: 1;
-      width: 1.25rem;
-      height: 1.25rem;
-      margin: -0.625rem;
-      fill: none;
-      stroke: var(--grey-700);
-      stroke-width: 1;
-      overflow: visible;
-      pointer-events: none;
-      &.is-tl {
-        top: 0;
-        left: 0;
-      }
-      &.is-tr {
-        top: 0;
-        right: 0;
-      }
-      &.is-bl {
-        bottom: 0;
-        left: 0;
-      }
-      &.is-br {
-        bottom: 0;
-        right: 0;
-      }
-    }
-
-    .cta_card-inner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-4);
-      padding: var(--space-6) var(--space-3);
-      text-align: center;
-    }
-
     .cta_title,
     .cta_text {
       margin: 0;
@@ -350,57 +72,13 @@ const litCells = [
       font-weight: var(--primary-medium);
     }
 
-    @media (width >= 48rem) {
-      .cta_grid {
-        --_cols: 12;
-      }
-
-      .cta_card {
-        margin-inline: calc(var(--_cell) * 2);
-      }
-
-      .cta_title {
-        font-size: var(--h2);
-      }
-    }
-
-    /* Desktop: Figma's 20 by 8 grid with the card over 10 by 6 cells, as on
-       the live site from 992px. Below 80rem the copy steps down a size so
-       it still fits the card. */
-    @media (width >= 62rem) {
-      .cta_grid {
-        --_cols: 20;
-        aspect-ratio: 20 / 8;
-        padding: 0;
-      }
-
-      .cta_cell.is-static,
-      .cta_links,
-      .cta_dot {
-        display: block;
-      }
-
-      .cta_card {
-        position: absolute;
-        left: calc(var(--_cell) * 5);
-        top: var(--_cell);
-        width: calc(var(--_cell) * 10);
-        height: calc(var(--_cell) * 6);
-        margin: 0;
-      }
-
-      .cta_card-inner {
-        gap: var(--space-3);
-        padding-block: var(--space-4);
-      }
-    }
-
+    /* Between 62 and 80rem the card is small: the copy steps down a size */
     @media (62rem <= width < 80rem) {
-      .cta_title {
+      .cta_card .cta_title {
         font-size: var(--h3);
       }
 
-      .cta_text {
+      .cta_card .cta_text {
         margin-bottom: 0;
         font-size: var(--text-small);
       }

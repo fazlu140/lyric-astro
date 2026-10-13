@@ -54,6 +54,83 @@ const assets = [
     from: `${CDN}/6a48108a7a6f23b4a84649be_Solution%20Graphic.avif`,
     to: "src/assets/images/home/solutions-graphic.avif",
   },
+  /* Platform page */
+  {
+    from: `${CDN}/6a56325c203b547c0adce0a7_experience.avif`,
+    to: "src/assets/images/platform/layers/01-experience.avif",
+  },
+  {
+    from: `${CDN}/6a563277a0e062fd287d3daa_434600048041f2a8421dceb6433bd047_sequence.avif`,
+    to: "src/assets/images/platform/layers/02-sequence.avif",
+  },
+  {
+    from: `${CDN}/6a563262555202359cfe8712_algorithm.avif`,
+    to: "src/assets/images/platform/layers/03-algorithm.avif",
+  },
+  {
+    from: `${CDN}/6a56329524bac939571e0cc2_data.avif`,
+    to: "src/assets/images/platform/layers/04-data.avif",
+  },
+  {
+    from: `${CDN}/6a514614352f0fcce81fb34f_60a17c7015e29ebbfe54f1fe7129b513_agent_tab-image-1.avif`,
+    to: "src/assets/images/platform/agents/01-decisions.avif",
+  },
+  {
+    from: `${CDN}/6a514479f420a1349653701b_8212ade3b0ba0bf4ee4e76a838c59ce0_agent_tab-image-2.avif`,
+    to: "src/assets/images/platform/agents/02-creators.avif",
+  },
+  {
+    from: `${CDN}/6a5145e5bfe63519bcef49f3_643975de6648fd38a508d83c12edafd3_agent_tab-image-3.avif`,
+    to: "src/assets/images/platform/agents/03-everyone.avif",
+  },
+  {
+    from: `${CDN}/6a5145e5685ad0511eaeee9a_e58156e910908002a1dad29126c812ab_agent_tab-image-4.avif`,
+    to: "src/assets/images/platform/agents/04-core.avif",
+  },
+  {
+    from: `${CDN}/6a5145e527075e7bb81753ff_eabff10373898ea090a41eea46304708_agent_tab-image-5.avif`,
+    to: "src/assets/images/platform/agents/05-open.avif",
+  },
+  {
+    from: `${CDN}/6a54ed36c5f869f1bf723833_aws.svg`,
+    to: "src/assets/logos/integrations/aws.svg",
+  },
+  {
+    from: `${CDN}/6a54f2a6ac0bbc841907e89a_sql-server.svg`,
+    to: "src/assets/logos/integrations/sql-server.svg",
+  },
+  {
+    from: `${CDN}/6a54f2b715904f715bad3c7f_google.svg`,
+    to: "src/assets/logos/integrations/google.svg",
+  },
+  {
+    from: `${CDN}/6a54f2c915904f715bad510c_databricks.svg`,
+    to: "src/assets/logos/integrations/databricks.svg",
+  },
+  {
+    from: `${CDN}/6a54f2d64ed8cf0cf4725565_atlansian.svg`,
+    to: "src/assets/logos/integrations/azure.svg",
+  },
+  {
+    from: `${CDN}/6a54f2e2fe9280445c06ac49_postgresql.svg`,
+    to: "src/assets/logos/integrations/postgresql.svg",
+  },
+  {
+    from: `${CDN}/6a54f2efb6ce97149f631e14_snowflake.svg`,
+    to: "src/assets/logos/integrations/snowflake.svg",
+  },
+  {
+    from: `${CDN}/6a54f2fd82893847fb545848_oracle.svg`,
+    to: "src/assets/logos/integrations/oracle.svg",
+  },
+  {
+    from: `${CDN}/6a54f2b0e945a505ae4189ac_google-bigquery.svg`,
+    to: "src/assets/logos/integrations/google-bigquery.svg",
+  },
+  {
+    from: `${CDN}/6a54f30ebcdb50dbab620f99_sap.svg`,
+    to: "src/assets/logos/integrations/sap.svg",
+  },
 ];
 
 let failed = 0;

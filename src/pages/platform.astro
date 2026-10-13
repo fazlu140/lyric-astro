@@ -1,0 +1,87 @@
+---
+import Layout from "@/layouts/BaseLayout.astro";
+import GridFrame from "@/components/wrapper/GridFrame.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Button from "@/components/Button.astro";
+import ButtonWrapper from "@/components/wrapper/ButtonWrapper.astro";
+import PlatformHero from "@/components/section/PlatformHero.astro";
+import LayersScroll from "@/components/section/LayersScroll.astro";
+import TextScrub from "@/components/section/TextScrub.astro";
+import AgentTabs from "@/components/section/AgentTabs.astro";
+import RoleCards from "@/components/section/RoleCards.astro";
+import Integrations from "@/components/section/Integrations.astro";
+import Faq from "@/components/section/Faq.astro";
+import { faq } from "@/data/platform.ts";
+---
+
+<Layout
+  theme="light"
+  title="AI Agents That Know Supply Chain | Lyric Studio"
+  description="Lyric Studio puts AI agents at every layer of the platform, grounded, traceable, and auditable, working with planners and modelers on supply chain decisions."
+>
+  {/* The AI-native supply chain platform */}
+  <PlatformHero />
+
+  {/* Experience, Sequence, Algorithm, Data, then Agentic AI */}
+  <LayersScroll />
+
+  {/* Every layer knows supply chain */}
+  <TextScrub
+    title="Every Layer Knows Supply Chain"
+    paragraphs={[
+      "Every layer is written for supply chain, not configured to look like it. SKU, location, BOM, and time-phased primitives in the data layer. Forecasting, inventory, and network science in the algorithm layer. Multi-echelon scenarios in the sequence layer. Planner-grade interfaces in the experience layer. Built for supply chain over two years, by a team focused on nothing else.",
+      "A stack of BI, ML, and optimization tools can be assembled to look similar. It doesn't speak supply chain. The integration cost compounds with every use case, every upgrade, every team handoff. Lyric paid that cost once, for everyone.",
+    ]}
+  />
+
+  {/* Agents at every layer */}
+  <AgentTabs />
+
+  {/* Built for the reality of your role */}
+  <RoleCards />
+
+  {/* Integrations */}
+  <Integrations />
+
+  {/* See Lyric Studio in action (Figma 5405:14605) */}
+  <GridFrame
+    theme="light"
+    rows={8}
+    card={[4, 1, 12, 6]}
+    lit={[[2, 1], [17, 1], [1, 3], [18, 3], [2, 6], [17, 6]]}
+    cardClass="pcta_card"
+  >
+    <Heading class="pcta_title" reveal="lines">See Lyric Studio in action.</Heading>
+    <Paragraph class="pcta_text" reveal="lines" revealDelay={0.15}>
+      Watch a working session that takes a real supply chain decision through
+      all four layers, from raw data to the moment a planner commits.
+    </Paragraph>
+    <ButtonWrapper class="pcta_buttons" data-animate="fade-up" data-animate-delay="0.3">
+      <Button element="link" href="/demo">Book a working session</Button>
+      <Button element="link" href="/webinars" emphasis="secondary">Join our next webinar</Button>
+    </ButtonWrapper>
+  </GridFrame>
+
+  {/* FAQ */}
+  <Faq items={faq} />
+</Layout>
+
+<style is:global>
+  @layer components {
+    .pcta_title,
+    .pcta_text {
+      margin: 0;
+    }
+
+    .pcta_text {
+      max-width: 34.5rem;
+      color: var(--text-2);
+    }
+
+    .pcta_buttons {
+      justify-content: center;
+      margin-top: var(--space-3);
+    }
+  }
+</style>

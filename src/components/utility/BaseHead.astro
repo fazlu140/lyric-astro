@@ -16,7 +16,8 @@ const {
 
 const isNoindex = noindex ?? isNoindexRoute(Astro.url.pathname);
 
-const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
+/* A title that already names its brand ("… | Lyric Studio") is kept as is */
+const pageTitle = title ? (title.includes(" | ") ? title : `${title} | ${SITE_NAME}`) : SITE_NAME;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const socialImage = new URL(image, Astro.site);
 ---

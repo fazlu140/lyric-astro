@@ -1,0 +1,134 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Color theme. */
+  theme?: "light" | "dark";
+  /** Heading above the text. */
+  title?: string;
+  /** Paragraphs that light up word by word as you scroll. */
+  paragraphs: string[];
+};
+
+const { render = true, theme = "dark", title, paragraphs } = Astro.props;
+
+/* Words are split here, at build time, so nothing reflows in the browser
+   and no splitting library loads. Each word gets its order for the CSS. */
+let index = 0;
+const split = paragraphs.map((text) =>
+  text.split(/\s+/).map((word) => ({ word, i: index++ })),
+);
+---
+
+<Section
+  render={render}
+  theme={theme}
+  borders="frame"
+  class="scrub_wrap"
+  containerClass="scrub_layout"
+  style={`--_words: ${index}`}
+  data-scrub
+>
+  <div class="scrub_content">
+    {title && (
+      <Heading class="scrub_title" reveal="lines">
+        {title}
+      </Heading>
+    )}
+    {split.map((words) => (
+      <p class="scrub_text">
+        {words.map(({ word, i }) => (
+          <>
+            <span class="scrub_word" style={`--_w: ${i}`}>{word}</span>{" "}
+          </>
+        ))}
+      </p>
+    ))}
+  </div>
+</Section>
+
+<script>
+  import { whenNear } from "@/utils/near.ts";
+  import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
+
+  /* Browsers with scroll-driven animations do it all in CSS. Others get one
+     scrubbed GSAP tween over the words. */
+  const native = CSS.supports("animation-timeline: view()");
+
+  for (const section of document.querySelectorAll<HTMLElement>("[data-scrub]")) whenNear(section, () => {
+    if (native || reducedMotion()) return;
+    const content = section.querySelector(".scrub_content")!;
+    const words = section.querySelectorAll(".scrub_word");
+    gsap.fromTo(
+      words,
+      { opacity: 0.22 },
+      {
+        opacity: 1,
+        ease: "none",
+        stagger: 0.1,
+        scrollTrigger: { trigger: content, start: "top 75%", end: "bottom 45%", scrub: 0.4 },
+      },
+    );
+    ScrollTrigger.refresh();
+  });
+</script>
+
+<style is:global>
+  @layer components {
+    .scrub_layout {
+      align-items: center;
+    }
+
+    .scrub_content {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      width: 100%;
+      max-width: 48.75rem;
+      padding-block: var(--space-6);
+    }
+
+    .scrub_title,
+    .scrub_text {
+      margin: 0;
+    }
+
+    .scrub_title {
+      margin-bottom: var(--space-2);
+    }
+
+    .scrub_text {
+      font-size: var(--h4);
+      line-height: 1.77;
+      font-weight: var(--primary-medium);
+    }
+
+    @supports (animation-timeline: view()) {
+      @media (prefers-reduced-motion: no-preference) {
+        /* Each word owns a slice of the text's pass through the screen */
+        .scrub_content {
+          view-timeline: --scrub block;
+        }
+
+        .scrub_word {
+          animation: scrub-word linear both;
+          animation-timeline: --scrub;
+          animation-range: cover calc(18% + var(--_w) / var(--_words) * 40%)
+            cover calc(23% + var(--_w) / var(--_words) * 40%);
+        }
+      }
+    }
+
+    @keyframes scrub-word {
+      from {
+        opacity: 0.22;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+  }
+</style>

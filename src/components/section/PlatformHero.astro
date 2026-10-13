@@ -1,0 +1,74 @@
+---
+import GridFrame from "@/components/wrapper/GridFrame.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Button from "@/components/Button.astro";
+import Studio from "@/assets/logo/lyric-studio.svg";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+---
+
+{/* Figma 5405:13685: a 20 by 13 light grid, the card over 12 by 7 cells */}
+<GridFrame
+  render={render}
+  theme="light"
+  borders="sides"
+  rows={13}
+  card={[4, 3, 12, 7]}
+  plus="plum"
+  pad={2}
+  class="phero_wrap"
+  cardClass="phero_card"
+>
+  <div class="phero_mark" data-animate="fade-up">
+    <Studio aria-label="Lyric Studio" role="img" />
+  </div>
+  <Heading tag="h1" variant="h1" class="phero_title" reveal="lines">
+    The AI-Native Supply Chain Platform.
+  </Heading>
+  <Paragraph variant="large" class="phero_text" reveal="lines" revealDelay={0.15}>
+    Built for the creators, built for the consumers, and built for the agents
+    right alongside them.
+  </Paragraph>
+  <div class="phero_actions" data-animate="fade-up" data-animate-delay="0.3">
+    <Button element="link" href="#platform">Explore the Platform</Button>
+  </div>
+</GridFrame>
+
+<style is:global>
+  @layer components {
+    .phero_card .grid-frame_card-inner {
+      gap: var(--space-4);
+      padding-inline: var(--space-4);
+    }
+
+    .phero_mark svg {
+      display: block;
+      width: 6.6875rem;
+      height: auto;
+      color: currentColor;
+    }
+
+    .phero_title {
+      max-width: 14em;
+      margin: var(--space-2) 0 0;
+      text-wrap: balance;
+    }
+
+    .phero_text {
+      max-width: 28rem;
+      margin: 0;
+      color: var(--text-2);
+      font-weight: var(--primary-regular);
+    }
+
+    .phero_actions {
+      margin-top: var(--space-4);
+    }
+  }
+</style>
