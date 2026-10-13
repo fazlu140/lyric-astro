@@ -72,9 +72,10 @@ const phase0 = parse(
 const phase1 = parse(
   "16,16,p 94,190,g 16,74,p 16,132,p 180,190,p 180,74,g 258,306,g 422,364,p 422,74,g 586,16,g 586,248,p 672,16,p 672,364,p 672,306,p 672,480,p 750,480,g 836,190,g 1078,190,p 1078,422,p",
 );
-/* Phase 3: the full mesh. */
+/* Phase 3: the full mesh. Where decisions consolidate, Figma replaces
+   cells with grey blocks (see `blocks`), so those cells leave here. */
 const phase3 = parse(
-  "94,16,p 16,190,p 16,364,p 94,364,p 16,74,p 16,422,p 16,132,p 16,306,p 94,306,p 258,16,p 180,190,p 258,190,p 180,364,p 258,364,p 180,74,p 180,248,p 258,248,p 180,306,p 258,306,p 422,16,p 422,190,p 344,364,p 422,74,p 344,248,p 344,422,p 422,364,p 344,132,p 422,306,p 586,16,p 508,364,p 508,248,p 586,422,p 508,132,p 586,132,p 508,306,p 586,306,p 672,16,p 750,16,p 672,190,p 672,364,p 750,364,p 672,248,p 672,422,p 672,132,p 750,132,p 672,306,p 914,16,p 836,190,p 836,74,p 836,248,p 914,422,p 914,132,p 836,306,p 914,306,p 1000,16,p 1078,190,p 1000,74,p 1000,248,p 1000,422,p 1000,132,p 1078,248,p 1078,306,p 836,364,p 836,422,p",
+  "94,16,p 16,190,p 16,364,p 94,364,p 16,422,p 16,306,p 94,306,p 258,16,p 180,190,p 258,190,p 180,364,p 180,74,p 180,248,p 258,248,p 180,306,p 422,16,p 422,190,p 422,74,p 344,248,p 344,422,p 422,364,p 344,132,p 422,306,p 586,16,p 508,364,p 508,248,p 586,422,p 508,132,p 586,132,p 508,306,p 586,306,p 672,16,p 750,16,p 672,190,p 672,364,p 750,364,p 672,248,p 672,422,p 672,132,p 750,132,p 672,306,p 914,16,p 836,190,p 836,74,p 836,248,p 914,422,p 914,132,p 836,306,p 914,306,p 1000,16,p 1078,190,p 1000,74,p 1000,248,p 1000,422,p 1000,132,p 1078,248,p 1078,306,p 836,364,p 836,422,p",
 );
 /* Phase 2 (no Figma frame): phase 1 plus the full mesh's first four
    functions, so the network visibly spreads left to right. */
@@ -126,6 +127,13 @@ allPhases.forEach((cells, phase) =>
   }),
 );
 const cells = [...positions.values()];
+
+/* Phase 3 consolidations from the full-mesh frame (6698:7343): the cells
+   underneath shrink away as the block grows over them */
+const blocks = [
+  { x: 16, y: 67, w: 54, h: 94, order: 0.3 },
+  { x: 258, y: 306, w: 140, h: 88, order: 0.5 },
+];
 const order = shuffledOrder(cells.length);
 const linkOrder = shuffledOrder(links.length);
 ---
@@ -183,8 +191,6 @@ const linkOrder = shuffledOrder(links.length);
         <svg
           class="mesh_svg"
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-          data-viewbox-full={`0 0 ${VIEW_W} ${VIEW_H}`}
-          data-viewbox-compact={`${GRID_X} 0 ${VIEW_W - GRID_X} ${GRID_H + 1}`}
           preserveAspectRatio="xMinYMin meet"
           role="img"
           aria-label="A grid of supply chain decisions across seven functions and three levels, connecting more of them in each phase"
@@ -213,15 +219,6 @@ const linkOrder = shuffledOrder(links.length);
             ),
           )}
 
-          <rect
-            class="mesh_block s3-g"
-            x={GRID_X + 258}
-            y="306"
-            width="140"
-            height="88"
-            data-order="0.5"
-          />
-
           <g class="mesh_links" transform={`translate(${GRID_X} 0)`}>
             {links.map((link, i) => (
               <path
@@ -233,6 +230,18 @@ const linkOrder = shuffledOrder(links.length);
               />
             ))}
           </g>
+
+          {/* Consolidated decisions: drawn over the lines that run into them */}
+          {blocks.map((block) => (
+            <rect
+              class="mesh_block s3-g"
+              x={GRID_X + block.x}
+              y={block.y}
+              width={block.w}
+              height={block.h}
+              data-order={block.order}
+            />
+          ))}
 
           {cells.map((cell, i) => (
             <rect
@@ -281,6 +290,7 @@ const linkOrder = shuffledOrder(links.length);
 
 <script>
   import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
+  import { fitSticky } from "@/utils/sticky.ts";
 
   /* Timeline units: a short hold, one unit per phase change, a short hold.
      Scrubbed by the scroll, so the mesh builds and unbuilds with it. */
@@ -288,6 +298,7 @@ const linkOrder = shuffledOrder(links.length);
 
   for (const section of document.querySelectorAll<HTMLElement>("[data-mesh]")) {
     const stage = section.querySelector<HTMLElement>(".mesh_stage");
+    if (stage) fitSticky(stage);
     const cards = [...section.querySelectorAll<HTMLElement>(".mesh_card")];
     const chip = section.querySelector<HTMLElement>(".mesh_chip_name");
     const names = (section.dataset.names ?? "").split(",");
@@ -337,12 +348,14 @@ const linkOrder = shuffledOrder(links.length);
           : cell.classList.contains(`s${phase}-g`)
             ? "g"
             : null;
+      /* Cells grow in from 60% and shrink away the same way, so a cell
+         merging into a block reads as being absorbed, not switched off */
       const look = (state: "g" | "p" | null) =>
-        state ? { opacity: 1, fill: colour[state] } : { opacity: 0 };
+        state ? { opacity: 1, scale: 1, fill: colour[state] } : { opacity: 0, scale: 0.6 };
       const linkOn = (link: Element, phase: number) =>
         link.classList.contains(`l${phase}`);
 
-      gsap.set(cells, { opacity: 0 });
+      gsap.set(cells, { opacity: 0, transformOrigin: "50% 50%" });
       cells.forEach((cell) => gsap.set(cell, look(stateOf(cell, 0))));
       /* autoRound off: GSAP rounds px values by default, and these run 1 to 0 */
       gsap.set(links, { strokeDashoffset: 1, autoRound: false });
@@ -389,41 +402,6 @@ const linkOrder = shuffledOrder(links.length);
       });
     }
 
-    /* On small screens the label column and labels row are dropped, and the
-       grid alone fills the width. */
-    const compact = window.matchMedia("(width < 48rem)");
-    const fitView = () => {
-      if (!svg) return;
-      svg.setAttribute(
-        "viewBox",
-        (compact.matches ? svg.dataset.viewboxCompact : svg.dataset.viewboxFull) ?? "",
-      );
-    };
-    fitView();
-    compact.addEventListener("change", fitView);
-
-    /* Phones: the mesh is drawn at full height and pans from Network to
-       Risk & Policies over the pinned scroll */
-    if (svg && !reducedMotion()) {
-      const graph = svg.parentElement!;
-      gsap.matchMedia().add("(width < 48rem)", () => {
-        gsap.fromTo(
-          svg,
-          { x: 0 },
-          {
-            x: () => -Math.max(0, svg.getBoundingClientRect().width - graph.clientWidth),
-            ease: "none",
-            scrollTrigger: {
-              trigger: section,
-              start: "top top",
-              end: "bottom bottom",
-              scrub: 0.6,
-              invalidateOnRefresh: true,
-            },
-          },
-        );
-      });
-    }
   }
 </script>
 
@@ -432,7 +410,10 @@ const linkOrder = shuffledOrder(links.length);
     /* Tall section, sticky stage: one slice of scroll per phase */
     .mesh_wrap {
       --_phase-scroll: 70svh;
-      height: calc(100svh - var(--nav-height) + (var(--_phases) - 1) * var(--_phase-scroll));
+      height: calc(
+        max(100svh - var(--nav-height), var(--_stage-h, 0px)) +
+          (var(--_phases) - 1) * var(--_phase-scroll)
+      );
       padding-top: 0;
       justify-content: start;
     }
@@ -440,7 +421,7 @@ const linkOrder = shuffledOrder(links.length);
     .mesh_wrap > .container.mesh_stage {
       --_progress: 0;
       position: sticky;
-      top: var(--nav-height);
+      top: var(--_sticky-top, var(--nav-height));
       height: calc(100svh - var(--nav-height));
       min-height: 34rem;
       display: grid;
@@ -680,53 +661,39 @@ const linkOrder = shuffledOrder(links.length);
       stroke-dashoffset: 0;
     }
 
-    /* Phones: title, then the mesh as large as the screen allows, then the
-       phase card. The mesh is taller than the width can show, so it pans
-       across the functions as you scroll (see script). */
+    /* Phones, as on the live site: title and lead, phase card, then the
+       whole mesh with its labels at full width straight under the card.
+       Spacing is tightened so it all fits one screen while pinned. */
     @media (width < 48rem) {
-      .mesh_row_label,
-      .mesh_column_label,
-      .mesh_label_group {
-        display: none;
-      }
-
+      /* As tall as its content, at least a screen; fitSticky keeps the
+         bottom in view when it's taller */
       .mesh_wrap > .container.mesh_stage {
-        grid-template-rows: auto minmax(0, 1fr) auto;
+        height: auto;
+        min-height: calc(100svh - var(--nav-height));
+        grid-template-rows: auto 1fr;
       }
 
-      .mesh_head {
-        display: contents;
+      .mesh_intro,
+      .mesh_phase {
+        padding-block: var(--space-4);
       }
 
       .mesh_intro {
-        order: 0;
-        padding-block: var(--space-4);
-        border-bottom: var(--border-width) solid var(--border);
-      }
-
-      .mesh_lead {
-        display: none;
+        gap: var(--space-2);
       }
 
       .mesh_graph {
-        order: 1;
-        align-items: stretch;
-        overflow: hidden;
-        padding-block: var(--space-3);
+        align-items: start;
+        padding: var(--space-3) var(--content-inset) 0;
       }
 
-      .mesh_svg {
-        width: auto;
-        height: 100%;
-        max-width: none;
-        max-height: none;
-        flex: none;
+      /* Labels scale with the mesh; larger here so they stay legible */
+      .mesh_row_label {
+        font-size: 1.5rem;
       }
 
-      .mesh_phase {
-        order: 2;
-        padding-block: var(--space-4);
-        border-top: var(--border-width) solid var(--border);
+      .mesh_column_label {
+        font-size: 1rem;
       }
     }
 

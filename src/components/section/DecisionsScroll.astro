@@ -104,14 +104,19 @@ const steps = [
           </ol>
         </div>
       </div>
+      {/* The scroll distance the stage stays pinned for */}
+      <div class="decisions_spacer" aria-hidden="true" />
     </section>
   )
 }
 
 <script>
   import { ScrollTrigger } from "@/utils/gsap.ts";
+  import { fitSticky } from "@/utils/sticky.ts";
 
   for (const section of document.querySelectorAll<HTMLElement>("[data-decisions]")) {
+    const stage = section.querySelector<HTMLElement>(".decisions_stage");
+    if (stage) fitSticky(stage);
     const steps = [...section.querySelectorAll<HTMLButtonElement>(".decisions_step")];
     const visuals = [...section.querySelectorAll<HTMLElement>(".decisions_visual")];
     const count = steps.length;
@@ -172,9 +177,14 @@ const steps = [
     /* The section is tall; the stage sticks while the words step through. */
     .decisions_wrap {
       --_step-scroll: 30svh;
-      height: calc(100svh - var(--nav-height) + (var(--_steps) - 1) * var(--_step-scroll));
       padding: 0;
       justify-content: start;
+    }
+
+    .decisions_spacer {
+      position: relative;
+      inset: auto;
+      height: calc((var(--_steps) - 1) * var(--_step-scroll));
     }
 
     /* Sticks under the nav bar, not behind it. Lumos treats a section's
@@ -184,9 +194,11 @@ const steps = [
       inset: auto;
       pointer-events: auto;
       position: sticky;
-      top: var(--nav-height);
-      height: calc(100svh - var(--nav-height));
-      min-height: 36rem;
+      /* Under the nav, or bottom-aligned when taller than the screen
+         (set by fitSticky) */
+      top: var(--_sticky-top, var(--nav-height));
+      min-height: calc(100svh - var(--nav-height));
+      display: grid;
       overflow: clip;
     }
 
@@ -303,7 +315,6 @@ const steps = [
        the stage uses the whole screen */
     .decisions_layout {
       position: relative;
-      height: 100%;
       display: grid;
       grid-template-rows: auto auto;
       align-content: space-between;
@@ -338,8 +349,7 @@ const steps = [
       display: flex;
       flex-direction: column;
       gap: 0.3em;
-      /* Shrinks on short screens so all six words fit in the stage */
-      font-size: min(var(--h2), 4.4svh);
+      font-size: var(--h2);
       line-height: 1.35;
       font-weight: var(--primary-medium);
     }
