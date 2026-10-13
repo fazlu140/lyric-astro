@@ -11,22 +11,26 @@ type Props = {
 
 const { render = true } = Astro.props;
 
-/* Copy: phases 0 and 1 from Figma, 2 and 3 from the live site. */
+/* Copy from the live site, the client's current wording. */
 const phases = [
   {
-    title: "Today: the Decision Mesh is typically a mess.",
-    text: "Black-box tools, siloed decisions, limited intelligence and infinite spreadsheets filling all the gaps. An architecture built for slower times, when technology was limiting and the market was more forgiving. Today's reality hits different. And when it does, the cracks show fast and value leaks everywhere.",
+    name: "Today",
+    title: "The Reality: Today's Decision Mesh is typically a mess",
+    text: "Black box tools, siloed decisions, limited intelligence, and infinite spreadsheets filling all the gaps. An architecture built for slower times, when the technology was limiting and the market was more forgiving. Today's reality hits different. And when it does, the cracks show fast and value begins leaking everywhere.",
   },
   {
-    title: "Start where you're feeling the most pain.",
-    text: "Swap out the messy spreadsheets and brittle black-box tools, or finally solve something you never could before. All with composable logic backed by the latest in algorithmic intelligence, built to fit the way your business actually works today and ready to grow and adapt right alongside you.",
+    name: "Start",
+    title: "The Start: Where you're feeling the most pain",
+    text: "Lyric Studio was built for a different world. Swap out the messy spreadsheets and brittle black box tools, or finally solve something you never could before. All with composable logic backed by the latest in algorithmic intelligence, built to fit the way your business actually works today, and ready to grow and adapt right alongside you.",
   },
   {
-    title: "More decisions come online, and something changes.",
+    name: "Shift",
+    title: "The Shift: More decisions come online and something changes",
     text: "The connections between them become actionable, letting upstream signals automatically inform downstream choices. Not just within functions, but across them. This is where you move beyond individual decisions and start building Decision Journeys, connected sequences tailored to the reality of your industry and the way you operate.",
   },
   {
-    title: "The Decision Mesh moves and matures with you.",
+    name: "Evolve",
+    title: "The Evolution: The Decision Mesh moves and matures with you",
     text: "Connections tighten, new decisions activate, others are replaced without disruption. The Mesh becomes a living system adapting as strategies shift, markets change, and new opportunities emerge. Decisions are no longer frozen in tools or trapped in silos. They're dynamic, connected, and built to grow with you.",
   },
 ];
@@ -138,13 +142,14 @@ const linkOrder = shuffledOrder(links.length);
       style={`--_phases: ${phases.length}`}
       data-mesh
       data-phase="0"
+      data-names={phases.map((phase) => phase.name).join(",")}
     >
       <div class="mesh_head">
         <div class="mesh_intro">
           <Heading class="mesh_title" reveal="lines">
-            Meet
+            Meet your
             <br />
-            Your Mesh
+            Decision Mesh
           </Heading>
           <Paragraph class="mesh_lead" data-animate="fade-up" data-animate-delay="0.2">
             Your supply chain is a massive mesh of decisions, running every
@@ -156,7 +161,7 @@ const linkOrder = shuffledOrder(links.length);
           <div class="mesh_progress" aria-hidden="true">
             <span class="mesh_chip text-style-mono">
               <span class="mesh_chip_square" />
-              Phase <span class="mesh_chip_number">0</span>
+              <span class="mesh_chip_name">{phases[0].name}</span>
             </span>
             <span class="mesh_track">
               <span class="mesh_fill" />
@@ -208,7 +213,14 @@ const linkOrder = shuffledOrder(links.length);
             ),
           )}
 
-          <rect class="mesh_block s3-g" x={GRID_X + 258} y="306" width="140" height="88" />
+          <rect
+            class="mesh_block s3-g"
+            x={GRID_X + 258}
+            y="306"
+            width="140"
+            height="88"
+            data-order="0.5"
+          />
 
           <g class="mesh_links" transform={`translate(${GRID_X} 0)`}>
             {links.map((link, i) => (
@@ -217,6 +229,7 @@ const linkOrder = shuffledOrder(links.length);
                 d={link.d}
                 pathLength="1"
                 style={`--_d: ${linkOrder[i] * 18}ms`}
+                data-order={(linkOrder[i] / links.length).toFixed(3)}
               />
             ))}
           </g>
@@ -229,6 +242,7 @@ const linkOrder = shuffledOrder(links.length);
               width={CELL_W}
               height={CELL_H}
               style={`--_d: ${order[i] * 6}ms`}
+              data-order={(order[i] / cells.length).toFixed(3)}
             />
           ))}
 
@@ -266,33 +280,113 @@ const linkOrder = shuffledOrder(links.length);
 }
 
 <script>
-  import { ScrollTrigger } from "@/utils/gsap.ts";
+  import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
+
+  /* Timeline units: a short hold, one unit per phase change, a short hold.
+     Scrubbed by the scroll, so the mesh builds and unbuilds with it. */
+  const HOLD = 0.3;
 
   for (const section of document.querySelectorAll<HTMLElement>("[data-mesh]")) {
     const stage = section.querySelector<HTMLElement>(".mesh_stage");
     const cards = [...section.querySelectorAll<HTMLElement>(".mesh_card")];
-    const number = section.querySelector<HTMLElement>(".mesh_chip_number");
+    const chip = section.querySelector<HTMLElement>(".mesh_chip_name");
+    const names = (section.dataset.names ?? "").split(",");
     const svg = section.querySelector<SVGSVGElement>(".mesh_svg");
+    const cells = [...section.querySelectorAll<SVGElement>(".mesh_cell, .mesh_block")];
+    const links = [...section.querySelectorAll<SVGPathElement>(".mesh_link")];
     const count = cards.length;
+    const changes = count - 1;
+    const total = HOLD * 2 + changes;
     let current = 0;
 
     const setPhase = (index: number) => {
       if (index === current) return;
       current = index;
       section.dataset.phase = String(index);
-      if (number) number.textContent = String(index);
+      if (chip) chip.textContent = names[index] ?? "";
       cards.forEach((card, i) => card.classList.toggle("is-active", i === index));
     };
 
-    ScrollTrigger.create({
-      trigger: section,
-      start: "top top",
-      end: "bottom bottom",
-      onUpdate: ({ progress }) => {
-        stage?.style.setProperty("--_progress", progress.toFixed(4));
-        setPhase(Math.min(count - 1, Math.floor(progress * count)));
-      },
-    });
+    /* The card changes halfway through each phase change */
+    const phaseAt = (time: number) =>
+      Math.max(0, Math.min(count - 1, Math.floor(time - HOLD + 0.5)));
+
+    if (reducedMotion()) {
+      /* Still steps through the phases, without movement in between */
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "bottom bottom",
+        onUpdate: ({ progress }) => {
+          stage?.style.setProperty("--_progress", progress.toFixed(4));
+          setPhase(phaseAt(progress * total));
+        },
+      });
+    } else {
+      section.classList.add("is-scrubbed");
+      const styles = getComputedStyle(section);
+      const colour = {
+        g: styles.getPropertyValue("--grey-80").trim(),
+        p: styles.getPropertyValue("--plum-400").trim(),
+      };
+
+      /* Each cell's state per phase, from its classes (s2-p: plum in phase 2) */
+      const stateOf = (cell: Element, phase: number) =>
+        cell.classList.contains(`s${phase}-p`)
+          ? "p"
+          : cell.classList.contains(`s${phase}-g`)
+            ? "g"
+            : null;
+      const look = (state: "g" | "p" | null) =>
+        state ? { opacity: 1, fill: colour[state] } : { opacity: 0 };
+      const linkOn = (link: Element, phase: number) =>
+        link.classList.contains(`l${phase}`);
+
+      gsap.set(cells, { opacity: 0 });
+      cells.forEach((cell) => gsap.set(cell, look(stateOf(cell, 0))));
+      gsap.set(links, { strokeDashoffset: 1 });
+
+      const tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+      tl.set({}, {}, total);
+
+      for (let phase = 1; phase < count; phase += 1) {
+        const at = HOLD + (phase - 1);
+
+        /* Cells pop in a scattered order across the first 70% of the change */
+        const changing = cells.filter(
+          (cell) => stateOf(cell, phase) !== stateOf(cell, phase - 1),
+        );
+        changing.forEach((cell) => {
+          const offset = Number(cell.getAttribute("data-order") ?? 0) * 0.7;
+          tl.to(cell, { ...look(stateOf(cell, phase)), duration: 0.3 }, at + offset);
+        });
+
+        /* Lines draw after the cells they join, retire in the first half */
+        links.forEach((link) => {
+          const on = linkOn(link, phase);
+          const was = linkOn(link, phase - 1);
+          if (on === was) return;
+          const offset = Number(link.getAttribute("data-order") ?? 0);
+          tl.to(
+            link,
+            { strokeDashoffset: on ? 0 : 1, duration: 0.45, ease: "power1.inOut" },
+            on ? at + 0.3 + offset * 0.4 : at + offset * 0.3,
+          );
+        });
+      }
+
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.6,
+        animation: tl,
+        onUpdate: ({ progress }) => {
+          stage?.style.setProperty("--_progress", progress.toFixed(4));
+          setPhase(phaseAt(progress * total));
+        },
+      });
+    }
 
     /* On small screens the label column and labels row are dropped, and the
        grid alone fills the width. */
@@ -313,7 +407,7 @@ const linkOrder = shuffledOrder(links.length);
   @layer components {
     /* Tall section, sticky stage: one slice of scroll per phase */
     .mesh_wrap {
-      --_phase-scroll: 55svh;
+      --_phase-scroll: 70svh;
       height: calc(
         100svh - var(--nav-height) + (var(--_phases) - 1) * var(--_phase-scroll) +
           3.125rem
@@ -399,9 +493,14 @@ const linkOrder = shuffledOrder(links.length);
       background-color: currentcolor;
     }
 
-    .mesh_chip_number {
+    .mesh_chip_name {
       display: inline-block;
-      min-width: 1ch;
+      min-width: 6ch;
+    }
+
+    /* GSAP drives cells and lines frame by frame while scrubbing */
+    .mesh_wrap.is-scrubbed :is(.mesh_cell, .mesh_block, .mesh_link) {
+      transition: none;
     }
 
     /* The bar follows the scroll itself; transform only */

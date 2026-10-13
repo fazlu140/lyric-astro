@@ -37,11 +37,11 @@ The live Webflow site (https://lyric.tech) is a valid source for media. Inspect 
 | 3 | Logo strip | `5405:8131` (logos `7758:2967`, 24 logos) | Logos loop continuously and seamlessly. | built (1x logos, 2x/SVG pending) |
 | 4 | Supply Chains Run on Decisions | `5405:8076` (states `6826:322`, `6826:361`, `6826:337`, `6826:350`, `6826:268`) | Scroll reveals the words one at a time; background swaps to the matching image/video. | built (`DecisionsScroll`, pinned) |
 | 5 | Meet Your Mesh | `5405:8144` (phase 0), `5451:1494` (phase 1), `6698:7343` (full mesh) | Animation from client slides + Slack video. Live site: pinned, 4 cards, 357-frame image sequence. | built (`MeshScroll`, SVG mesh) |
-| 6 | One platform. Four layers. | `5405:9391` | — | |
-| 7 | Control for the Creator / Clarity for the Consumer | `5405:9577` (screens `6544:5017`, `6544:4820`) | Shows the Creator Zone and Consumer Zone sides. | |
-| 8 | Start anywhere | `5405:9588` | — | |
-| 9 | We deliver measurable results | `5405:9636` | Card slides. | |
-| 10 | CTA + Footer | `5405:9756` | Footer animation: prototype.lyric.tech/p/540/lyric-footer (login needed, ask Fazlu). | |
+| 6 | One platform. Four layers. | `5405:8329` (stack `5405:9366`) | — | |
+| 7 | Control for the Creator / Clarity for the Consumer | `5405:9391` (screens `6544:5017`, `6544:4820`) | Shows the Creator Zone and Consumer Zone sides. | |
+| 8 | Start anywhere | `5405:9577` | — | |
+| 9 | We deliver measurable results | `5405:9588` | Card slides. | |
+| 10 | CTA + Footer | CTA `5405:9636`, footer `5405:9756` | Footer animation: prototype.lyric.tech/p/540/lyric-footer (login needed, ask Fazlu). | |
 
 ## Design decisions
 
@@ -106,7 +106,7 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 
 **Decisions scroll** (`section/DecisionsScroll.astro`): the section is tall and its stage sticks under the nav; each word owns an equal slice of the scroll (`--_step-scroll: 30svh`). The active word gets the caret and slides across. The new visual wipes in with a clip-path from the side you scroll towards (bottom going down, top going up) and settles from 112% scale, while the outgoing one stays underneath drifting 6% the other way, like a slide change. Supply/Transportation play their videos only while active. Words are buttons that scroll to their slice. Copy sits at the content inset (104px) rather than Figma's 136px, to line up with every other section.
 
-**Meet Your Mesh** (`section/MeshScroll.astro`): pinned like the decisions section, four phases (Today, Start, Shift, Evolve; copy from Figma for 0 and 1, the live site for 2 and 3). The live site plays a 357-frame image sequence on a canvas; ours is one inline SVG built from Figma's real coordinates (cells, dashed slots, connector paths), so it is vector-sharp and a few KB. Each cell carries its state per phase as classes (`s1-p` = plum in phase 1, `s0-g` = grey in phase 0) and the section's `data-phase` switches them, with a shuffled per-cell delay. Connector lines draw with `pathLength="1"` and `stroke-dashoffset`. Phase 2 has no Figma frame: it is phase 1 plus the full mesh's first four functions. The progress bar follows scroll continuously (transform only), and cards share one grid cell so the outgoing one leaves before the next arrives. Below 48rem the label column and labels row are dropped and the grid fills the width.
+**Meet Your Mesh** (`section/MeshScroll.astro`): pinned, four phases (Today, Start, Shift, Evolve), copy from the live site. The live site scrubs a 357-frame image sequence on a canvas (several MB of frames). Ours is one inline SVG built from Figma's real coordinates (cells, dashed slots, connector paths): vector-sharp, a few KB, and **scrubbed, not stepped**: a paused GSAP timeline holds every cell and line change (cells offset by a shuffled `data-order`, lines drawn with `pathLength="1"` and `stroke-dashoffset`) and ScrollTrigger (`scrub: 0.6`) drives its playhead, so scrolling back reverses it frame-perfectly. Frames are not needed: anything that can be drawn as vectors should be animated as vectors; an image sequence is only worth it for footage that can't be (real 3D renders, photographic motion). Each cell keeps its per-phase state as classes (`s1-p` = plum in phase 1) for the reduced-motion fallback, which switches phases with `data-phase`. The card text and chip follow the playhead's phase. Phase 2 has no Figma frame: it is phase 1 plus the full mesh's first four functions. Below 48rem the label column and labels row are dropped.
 
 **Pinned sections in Lumos:** `Section` treats any child that isn't `.container` as a background layer (absolute, no pointer events), so a sticky stage either is the container (`containerClass`) or opts back in with `inset: auto; pointer-events: auto`. And `.container` centres its content (`justify-content: center`), so a grid stage needs `grid-template-columns: minmax(0, 1fr)` or its column shrinks to its content.
 
