@@ -19,15 +19,14 @@
 </script>
 
 <script>
-  import { gsap, ScrollTrigger, SplitText, reducedMotion } from "@/utils/gsap.ts";
+  import { gsap, SplitText, reducedMotion } from "@/utils/gsap.ts";
   import { motion, presets, type MotionPreset } from "@/utils/motion.ts";
 
-  const done = (el: HTMLElement) => el.classList.add("is-animated");
+  /* The script has loaded: the 2-second safety net (see CSS) is no longer
+     needed, so it can't flash text that is about to animate in. */
+  document.documentElement.classList.add("motion-ready");
 
-  const trigger = (el: HTMLElement) =>
-    el.getBoundingClientRect().top < window.innerHeight * 0.9
-      ? undefined
-      : { trigger: el, start: motion.start, once: true };
+  const done = (el: HTMLElement) => el.classList.add("is-animated");
 
   /* Split only once the real fonts are in: splitting in the fallback font
      and re-splitting when General Sans arrives restarts the animation
@@ -41,11 +40,13 @@
   const revealText = (el: HTMLElement) => {
     const kind = (el.dataset.reveal ?? "lines") as "lines" | "words" | "chars";
     const delay = Number(el.dataset.revealDelay) || 0;
-    const scrollTrigger = trigger(el);
 
     SplitText.create(el, {
       type: kind === "chars" ? "words,chars" : kind,
       linesClass: "reveal-line",
+      /* The text stays readable as one paragraph to screen readers; an
+         aria-label on a <p> is not allowed */
+      aria: "none",
       autoSplit: true,
       onSplit(split) {
         const parts = split[kind];
@@ -57,7 +58,6 @@
           duration: motion.text.duration,
           stagger: motion.stagger[kind],
           delay,
-          scrollTrigger,
           /* Own GPU layer only while moving */
           onStart: () => gsap.set(parts, { willChange: "transform, opacity" }),
           onComplete: () => gsap.set(parts, { clearProps: "willChange" }),
@@ -76,32 +76,39 @@
       force3D: true,
       stagger: motion.stagger.items,
       delay: Number(el.dataset.animateDelay) || 0,
-      scrollTrigger: trigger(el),
     });
     done(el);
   };
 
+  const play = (el: HTMLElement) =>
+    el.hasAttribute("data-reveal") ? revealText(el) : animateBlock(el);
+
   const start = async () => {
-    const reveals = [...document.querySelectorAll<HTMLElement>("[data-reveal]")];
-    const blocks = [...document.querySelectorAll<HTMLElement>("[data-animate]")];
+    const all = [...document.querySelectorAll<HTMLElement>("[data-reveal], [data-animate]")];
 
     if (reducedMotion()) {
-      [...reveals, ...blocks].forEach(done);
+      all.forEach(done);
       return;
     }
 
-    blocks.forEach(animateBlock);
+    await fontsReady;
+    /* Let the first frame paint before starting */
+    await nextFrame();
 
-    if (reveals.length) {
-      await fontsReady;
-      /* Let the first frame paint before starting, so the opening frames of
-         the reveal aren't spent waiting on layout. */
-      await nextFrame();
-      reveals.forEach(revealText);
-    }
-
-    /* Late images and fonts move things down; re-measure once all is in. */
-    window.addEventListener("load", () => ScrollTrigger.refresh(), { once: true });
+    /* Each element is split and animated only when it scrolls in (12% above
+       the bottom edge), never ahead of time: no ScrollTrigger per element
+       and no splitting text nobody has reached yet. */
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer.unobserve(entry.target);
+          play(entry.target as HTMLElement);
+        }
+      },
+      { rootMargin: "0px 0px -12% 0px" },
+    );
+    all.forEach((el) => observer.observe(el));
   };
 
   start();
@@ -113,6 +120,10 @@
        everything after two seconds. */
     .js :is([data-reveal], [data-animate]):not(.is-animated) {
       visibility: hidden;
+    }
+
+    /* Safety net only while the script hasn't loaded */
+    .js:not(.motion-ready) :is([data-reveal], [data-animate]):not(.is-animated) {
       animation: motion-fallback 0s linear 2s forwards;
     }
 

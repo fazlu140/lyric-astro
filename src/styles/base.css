@@ -304,7 +304,9 @@
   --background-3: var(--grey-50);
   --background-skeleton: color-mix(in lab, currentcolor 10%, transparent);
   --text: var(--black);
-  --text-2: var(--grey-500);
+  /* Figma uses grey-500 (#7e7e7e, 3.9:1 on white), which fails WCAG AA for
+     body text; grey-600 (#676767, 5.6:1) passes and reads the same */
+  --text-2: var(--grey-600);
   --border: var(--grey-80);
   --heading-accent: var(--plum-400);
 

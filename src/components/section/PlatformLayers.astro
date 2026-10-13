@@ -171,10 +171,11 @@ const hexagon =
 }
 
 <script>
+  import { whenNear } from "@/utils/near.ts";
   import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
 
-  for (const visual of document.querySelectorAll<HTMLElement>("[data-platform]")) {
-    if (reducedMotion()) continue;
+  for (const visual of document.querySelectorAll<HTMLElement>("[data-platform]")) whenNear(visual, () => {
+    if (reducedMotion()) return;
 
     const svg = visual.querySelector("svg")!;
     const layers = [...svg.querySelectorAll<SVGGElement>(".platform_layer")];
@@ -210,7 +211,7 @@ const hexagon =
       scrub: 0.6,
       animation: tl,
     });
-  }
+  });
 </script>
 
 <style is:global>

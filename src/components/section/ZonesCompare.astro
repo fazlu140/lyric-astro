@@ -89,9 +89,10 @@ const consumer = pickAsset(images, "consumer-zone");
 </Section>
 
 <script>
+  import { whenNear } from "@/utils/near.ts";
   import { ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
 
-  for (const root of document.querySelectorAll<HTMLElement>("[data-zones]")) {
+  for (const root of document.querySelectorAll<HTMLElement>("[data-zones]")) whenNear(root, () => {
     const handle = root.querySelector<HTMLElement>(".zones_handle")!;
     const still = reducedMotion();
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -192,7 +193,7 @@ const consumer = pickAsset(images, "consumer-zone");
         },
       });
     }
-  }
+  });
 </script>
 
 <style is:global>

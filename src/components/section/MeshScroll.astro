@@ -2,7 +2,7 @@
 import Section from "@/components/wrapper/Section.astro";
 import Heading from "@/components/typography/Heading.astro";
 import Paragraph from "@/components/typography/Paragraph.astro";
-import { shuffledOrder } from "@/utils/shuffle.ts";
+import { meshCells, meshLines } from "@/data/mesh.ts";
 
 type Props = {
   /** Set to `false` to omit the component. */
@@ -58,84 +58,20 @@ const VIEW_H = GRID_H + 61; // labels row below
 const slotsX = [16, 94];
 const slotsY = Array.from({ length: 9 }, (_, i) => 16 + i * 58);
 
-const parse = (list: string) =>
-  list.split(" ").map((entry) => {
-    const [x, y, kind] = entry.split(",");
-    return { key: `${x},${y}`, x: +x, y: +y, kind: kind as "g" | "p" };
-  });
+/* Cells and lines traced from the live site's image sequence (src/data/mesh.ts) */
+const cells = meshCells.split("|").map((entry) => {
+  const [pos, steps] = entry.split(":");
+  const [x, y] = pos.split(",").map(Number);
+  /* A step at frame 1 is the starting look; anything else starts hidden */
+  const first = steps.split(" ")[0];
+  const initial = /^1[gp]$/.test(first) ? first.slice(-1) : null;
+  return { x, y, steps, initial };
+});
 
-/* Phase 0: the mess. Grey decisions, nothing connected. */
-const phase0 = parse(
-  "94,190,g 16,74,g 180,74,g 258,306,g 422,364,g 422,74,g 586,16,g 586,248,g 672,16,g 750,480,g 836,190,g 1078,422,g",
-);
-/* Phase 1: the first connected decisions. */
-const phase1 = parse(
-  "16,16,p 94,190,g 16,74,p 16,132,p 180,190,p 180,74,g 258,306,g 422,364,p 422,74,g 586,16,g 586,248,p 672,16,p 672,364,p 672,306,p 672,480,p 750,480,g 836,190,g 1078,190,p 1078,422,p",
-);
-/* Phase 3: the full mesh. Where decisions consolidate, Figma replaces
-   cells with grey blocks (see `blocks`), so those cells leave here. */
-const phase3 = parse(
-  "94,16,p 16,190,p 16,364,p 94,364,p 16,422,p 16,306,p 94,306,p 258,16,p 180,190,p 258,190,p 180,364,p 180,74,p 180,248,p 258,248,p 180,306,p 422,16,p 422,190,p 422,74,p 344,248,p 344,422,p 422,364,p 344,132,p 422,306,p 586,16,p 508,364,p 508,248,p 586,422,p 508,132,p 586,132,p 508,306,p 586,306,p 672,16,p 750,16,p 672,190,p 672,364,p 750,364,p 672,248,p 672,422,p 672,132,p 750,132,p 672,306,p 914,16,p 836,190,p 836,74,p 836,248,p 914,422,p 914,132,p 836,306,p 914,306,p 1000,16,p 1078,190,p 1000,74,p 1000,248,p 1000,422,p 1000,132,p 1078,248,p 1078,306,p 836,364,p 836,422,p",
-);
-/* Phase 2 (no Figma frame): phase 1 plus the full mesh's first four
-   functions, so the network visibly spreads left to right. */
-const SHIFT_EDGE = 672;
-const phase2 = [
-  ...phase1.filter((c) => !phase3.some((d) => d.key === c.key && d.x < SHIFT_EDGE)),
-  ...phase3.filter((c) => c.x < SHIFT_EDGE),
-];
-
-const links1 = [
-  "M164 31L29 31", "M164 89L29 89", "M164 147L29 147", "M42 29L42 138",
-  "M164 31L165 206", "M329 206L164 206", "M492 379L327 379", "M656 263L491 263",
-  "M699 29L699 485", "M820 321L655 321", "M820 31L699 31", "M820 379L655 379",
-  "M721 495L655 495", "M1105 205L983 205", "M1105 437L983 437",
-  "M656 496L656 379L492 379", "M984.5 204.5L984.5 175L820.5 175L820.5 30.5",
-  "M984.5 436.5L984.5 349.5L820.5 349.5", "M820.5 379.5L820.5 320.5",
-  "M492.5 262L492.5 175.5L328.5 175.5L328.5 205", "M656.5 321L656.5 262.5",
-];
-const links3 = [
-  "M535 263L535 324", "M475 322.5L613 322.5L613 147L672.5 147", "M43 98L43 199",
-  "M43 331L43 369", "M121 328L121 366", "M410 88.5L737.5 88.5L737.5 204.5L838 204.5",
-  "M285 271L285 309", "M207 336L207 374", "M207 336L207 349L285 349L285 367",
-  "M122 321L165 321L165 437.5L346 437.5", "M395.5 263L410 263L410 204.5L423 204.5",
-  "M613 147L613 263", "M699 379L699 425", "M777 31L777 149", "M699 31L699 149",
-  "M863 335L863 425", "M887.5 90L901.5 90L901.5 150L916.5 150",
-  "M423.5 204.5L502 204.5L502 436.5L586.5 436.5", "M1105 205L1105 382",
-  "M1002 263L992 263L992 437L1000.5 437", "M1002 31L992 31L992 149L1000 149",
-  "M687 321L902 321L902 205.5L1081.5 205.5", "M687 263L828 263L828 90L1003.5 90",
-  "M279 263L613 263", "M502 31L428 31", "M502 31L502 205", "M66 149L410 149L410 88.5",
-  "M396 149L410 149L410 204.5L422.5 204.5", "M280 31L246 31L246 90.5L227.5 90.5",
-  "M286 31L320 31L320 205L307.5 205", "M207 216L207 254", "M320 31L320 205",
-];
-const maxX = (d: string) => Math.max(...[...d.matchAll(/[ML]([\d.]+)/g)].map((m) => +m[1]));
-
-/* Each link knows which phases show it */
-const links = [
-  ...links1.map((d) => ({ d, phases: [1, 2] })),
-  ...links3.map((d) => ({ d, phases: maxX(d) < SHIFT_EDGE ? [2, 3] : [3] })),
-];
-
-/* Each filled position knows its state per phase: grey, plum or off */
-const allPhases = [phase0, phase1, phase2, phase3];
-const positions = new Map<string, { x: number; y: number; states: string[] }>();
-allPhases.forEach((cells, phase) =>
-  cells.forEach(({ key, x, y, kind }) => {
-    const entry = positions.get(key) ?? { x, y, states: [] };
-    entry.states.push(`s${phase}-${kind}`);
-    positions.set(key, entry);
-  }),
-);
-const cells = [...positions.values()];
-
-/* Phase 3 consolidations from the full-mesh frame (6698:7343): the cells
-   underneath shrink away as the block grows over them */
-const blocks = [
-  { x: 16, y: 67, w: 54, h: 94, order: 0.3 },
-  { x: 258, y: 306, w: 140, h: 88, order: 0.5 },
-];
-const order = shuffledOrder(cells.length);
-const linkOrder = shuffledOrder(links.length);
+const lines = meshLines.map(([o, pos, from, to, start, end, drawFrom]) => {
+  const [a, b] = drawFrom === "lo" ? [from, to] : [to, from];
+  return { d: o === "h" ? `M${a} ${pos}H${b}` : `M${pos} ${a}V${b}`, start, end };
+});
 ---
 
 {
@@ -220,40 +156,29 @@ const linkOrder = shuffledOrder(links.length);
           )}
 
           <g class="mesh_links" transform={`translate(${GRID_X} 0)`}>
-            {links.map((link, i) => (
+            {lines.map((line) => (
               <path
-                class:list={["mesh_link", link.phases.map((p) => `l${p}`)]}
-                d={link.d}
+                class="mesh_link"
+                d={line.d}
                 pathLength="1"
-                style={`--_d: ${linkOrder[i] * 18}ms`}
-                data-order={(linkOrder[i] / links.length).toFixed(3)}
+                data-start={line.start}
+                data-end={line.end}
               />
             ))}
           </g>
 
-          {/* Consolidated decisions: drawn over the lines that run into them */}
-          {blocks.map((block) => (
-            <rect
-              class="mesh_block s3-g"
-              x={GRID_X + block.x}
-              y={block.y}
-              width={block.w}
-              height={block.h}
-              data-order={block.order}
-            />
-          ))}
-
-          {cells.map((cell, i) => (
-            <rect
-              class:list={["mesh_cell", cell.states]}
-              x={GRID_X + cell.x}
-              y={cell.y}
-              width={CELL_W}
-              height={CELL_H}
-              style={`--_d: ${order[i] * 6}ms`}
-              data-order={(order[i] / cells.length).toFixed(3)}
-            />
-          ))}
+          <g transform={`translate(${GRID_X} 0)`}>
+            {cells.map((cell) => (
+              <rect
+                class:list={["mesh_cell", cell.initial && `is-${cell.initial}`]}
+                x={cell.x}
+                y={cell.y}
+                width={CELL_W}
+                height={CELL_H}
+                data-steps={cell.steps}
+              />
+            ))}
+          </g>
 
           <line class="mesh_rule" x1={GRID_X} y1="0" x2={GRID_X} y2={VIEW_H} />
           <line class="mesh_rule" x1="0" y1={GRID_H + 0.5} x2={VIEW_W} y2={GRID_H + 0.5} />
@@ -289,25 +214,24 @@ const linkOrder = shuffledOrder(links.length);
 }
 
 <script>
+  import { whenNear } from "@/utils/near.ts";
   import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
   import { fitSticky } from "@/utils/sticky.ts";
 
-  /* Timeline units: a short hold, one unit per phase change, a short hold.
-     Scrubbed by the scroll, so the mesh builds and unbuilds with it. */
-  const HOLD = 0.3;
+  import { MESH_FRAMES, MESH_SAMPLE } from "@/data/mesh.ts";
 
-  for (const section of document.querySelectorAll<HTMLElement>("[data-mesh]")) {
+  /* One timeline in frames of the live image sequence (357), scrubbed by
+     the whole pinned scroll exactly like the live site: the cards switch
+     at each quarter, cells and lines change at the frames traced from it. */
+  for (const section of document.querySelectorAll<HTMLElement>("[data-mesh]")) whenNear(section, () => {
     const stage = section.querySelector<HTMLElement>(".mesh_stage");
     if (stage) fitSticky(stage);
     const cards = [...section.querySelectorAll<HTMLElement>(".mesh_card")];
     const chip = section.querySelector<HTMLElement>(".mesh_chip_name");
     const names = (section.dataset.names ?? "").split(",");
-    const svg = section.querySelector<SVGSVGElement>(".mesh_svg");
-    const cells = [...section.querySelectorAll<SVGElement>(".mesh_cell, .mesh_block")];
+    const cells = [...section.querySelectorAll<SVGRectElement>(".mesh_cell")];
     const links = [...section.querySelectorAll<SVGPathElement>(".mesh_link")];
     const count = cards.length;
-    const changes = count - 1;
-    const total = HOLD * 2 + changes;
     let current = 0;
 
     const setPhase = (index: number) => {
@@ -318,91 +242,63 @@ const linkOrder = shuffledOrder(links.length);
       cards.forEach((card, i) => card.classList.toggle("is-active", i === index));
     };
 
-    /* The card changes halfway through each phase change */
-    const phaseAt = (time: number) =>
-      Math.max(0, Math.min(count - 1, Math.floor(time - HOLD + 0.5)));
+    const styles = getComputedStyle(section);
+    const colour = {
+      g: styles.getPropertyValue("--grey-80").trim(),
+      p: styles.getPropertyValue("--plum-400").trim(),
+    };
+    /* Cells grow in from 60% and shrink away the same way */
+    const look = (state: string) =>
+      state === "."
+        ? { opacity: 0, scale: 0.6 }
+        : { opacity: 1, scale: 1, fill: colour[state as "g" | "p"] };
 
-    if (reducedMotion()) {
-      /* Still steps through the phases, without movement in between */
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "bottom bottom",
-        onUpdate: ({ progress }) => {
-          stage?.style.setProperty("--_progress", progress.toFixed(4));
-          setPhase(phaseAt(progress * total));
-        },
+    const tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+    tl.set({}, {}, MESH_FRAMES);
+
+    gsap.set(cells, { transformOrigin: "50% 50%" });
+    cells.forEach((cell) => {
+      const steps = (cell.dataset.steps ?? "").split(" ");
+      steps.forEach((step, i) => {
+        const frame = parseInt(step, 10);
+        const state = step.slice(-1);
+        /* A step at frame 1 is the starting look */
+        if (i === 0 && frame <= 1) return gsap.set(cell, look(state));
+        if (i === 0) gsap.set(cell, look("."));
+        /* It changed somewhere in the sampled gap before this frame */
+        tl.to(cell, { ...look(state), duration: MESH_SAMPLE }, frame - MESH_SAMPLE);
       });
-    } else {
-      section.classList.add("is-scrubbed");
-      const styles = getComputedStyle(section);
-      const colour = {
-        g: styles.getPropertyValue("--grey-80").trim(),
-        p: styles.getPropertyValue("--plum-400").trim(),
-      };
+    });
 
-      /* Each cell's state per phase, from its classes (s2-p: plum in phase 2) */
-      const stateOf = (cell: Element, phase: number) =>
-        cell.classList.contains(`s${phase}-p`)
-          ? "p"
-          : cell.classList.contains(`s${phase}-g`)
-            ? "g"
-            : null;
-      /* Cells grow in from 60% and shrink away the same way, so a cell
-         merging into a block reads as being absorbed, not switched off */
-      const look = (state: "g" | "p" | null) =>
-        state ? { opacity: 1, scale: 1, fill: colour[state] } : { opacity: 0, scale: 0.6 };
-      const linkOn = (link: Element, phase: number) =>
-        link.classList.contains(`l${phase}`);
+    /* autoRound off: GSAP rounds px values by default, and these run 1 to 0 */
+    gsap.set(links, { strokeDashoffset: 1, autoRound: false });
+    links.forEach((link) => {
+      const start = Number(link.dataset.start) - MESH_SAMPLE;
+      const end = Math.max(Number(link.dataset.end), start + MESH_SAMPLE * 2);
+      tl.to(
+        link,
+        { strokeDashoffset: 0, autoRound: false, ease: "power1.inOut", duration: end - start },
+        start,
+      );
+    });
 
-      gsap.set(cells, { opacity: 0, transformOrigin: "50% 50%" });
-      cells.forEach((cell) => gsap.set(cell, look(stateOf(cell, 0))));
-      /* autoRound off: GSAP rounds px values by default, and these run 1 to 0 */
-      gsap.set(links, { strokeDashoffset: 1, autoRound: false });
-
-      const tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
-      tl.set({}, {}, total);
-
-      for (let phase = 1; phase < count; phase += 1) {
-        const at = HOLD + (phase - 1);
-
-        /* Cells pop in a scattered order across the first 70% of the change */
-        const changing = cells.filter(
-          (cell) => stateOf(cell, phase) !== stateOf(cell, phase - 1),
-        );
-        changing.forEach((cell) => {
-          const offset = Number(cell.getAttribute("data-order") ?? 0) * 0.7;
-          tl.to(cell, { ...look(stateOf(cell, phase)), duration: 0.3 }, at + offset);
-        });
-
-        /* Lines draw after the cells they join, retire in the first half */
-        links.forEach((link) => {
-          const on = linkOn(link, phase);
-          const was = linkOn(link, phase - 1);
-          if (on === was) return;
-          const offset = Number(link.getAttribute("data-order") ?? 0);
-          tl.to(
-            link,
-            { strokeDashoffset: on ? 0 : 1, autoRound: false, duration: 0.45, ease: "power1.inOut" },
-            on ? at + 0.3 + offset * 0.4 : at + offset * 0.3,
-          );
-        });
-      }
-
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 0.6,
-        animation: tl,
-        onUpdate: ({ progress }) => {
-          stage?.style.setProperty("--_progress", progress.toFixed(4));
-          setPhase(phaseAt(progress * total));
-        },
-      });
-    }
-
-  }
+    const still = reducedMotion();
+    ScrollTrigger.create({
+      trigger: section,
+      start: "top top",
+      end: "bottom bottom",
+      /* Reduced motion: jump to the end of each card's step, no movement */
+      scrub: still ? false : 0.6,
+      animation: still ? undefined : tl,
+      onUpdate: ({ progress }) => {
+        const phase = Math.min(count - 1, Math.floor(progress * count));
+        stage?.style.setProperty("--_progress", progress.toFixed(4));
+        setPhase(phase);
+        if (still) tl.progress((phase + 1) / count);
+      },
+    });
+    if (still) tl.progress(1 / count);
+  });
 </script>
 
 <style is:global>
@@ -499,10 +395,6 @@ const linkOrder = shuffledOrder(links.length);
       min-width: 6ch;
     }
 
-    /* GSAP drives cells and lines frame by frame while scrubbing */
-    .mesh_wrap.is-scrubbed :is(.mesh_cell, .mesh_block, .mesh_link) {
-      transition: none;
-    }
 
     /* The bar follows the scroll itself; transform only */
     .mesh_track {
@@ -621,44 +513,26 @@ const linkOrder = shuffledOrder(links.length);
       dominant-baseline: middle;
     }
 
-    /* Cells and blocks: hidden until their phase names a state for them */
-    .mesh_cell,
-    .mesh_block {
+    /* Cells and lines start as the opening frame: the few grey cells of
+       the "mess". GSAP takes them from there. */
+    .mesh_cell {
       fill: var(--grey-80);
       opacity: 0;
-      transition:
-        opacity 0.45s var(--motion-ease-out) var(--_d, 0ms),
-        fill 0.45s var(--motion-ease-out) var(--_d, 0ms);
+      &.is-g {
+        opacity: 1;
+      }
+      &.is-p {
+        opacity: 1;
+        fill: var(--plum-400);
+      }
     }
 
-    .mesh_wrap[data-phase="0"] .s0-g,
-    .mesh_wrap[data-phase="1"] .s1-g,
-    .mesh_wrap[data-phase="2"] .s2-g,
-    .mesh_wrap[data-phase="3"] .s3-g {
-      opacity: 1;
-    }
-
-    .mesh_wrap[data-phase="1"] .s1-p,
-    .mesh_wrap[data-phase="2"] .s2-p,
-    .mesh_wrap[data-phase="3"] .s3-p {
-      opacity: 1;
-      fill: var(--plum-400);
-    }
-
-    /* Links draw along their length when their phase arrives */
     .mesh_link {
       fill: none;
       stroke: var(--plum-400);
       stroke-width: 1;
       stroke-dasharray: 1;
       stroke-dashoffset: 1;
-      transition: stroke-dashoffset 0.8s var(--motion-ease-in-out) var(--_d, 0ms);
-    }
-
-    .mesh_wrap[data-phase="1"] .l1,
-    .mesh_wrap[data-phase="2"] .l2,
-    .mesh_wrap[data-phase="3"] .l3 {
-      stroke-dashoffset: 0;
     }
 
     /* Phones, as on the live site: title and lead, phase card, then the

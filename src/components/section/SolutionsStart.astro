@@ -64,10 +64,11 @@ const graphic = pickAsset(images, "solutions-graphic");
 </Section>
 
 <script>
+  import { whenNear } from "@/utils/near.ts";
   import { gsap, reducedMotion } from "@/utils/gsap.ts";
 
   if (!reducedMotion()) {
-    for (const visual of document.querySelectorAll<HTMLElement>("[data-start]")) {
+    for (const visual of document.querySelectorAll<HTMLElement>("[data-start]")) whenNear(visual, () => {
       /* The render drifts slower than the page: depth without a pin. */
       gsap.fromTo(
         visual.querySelectorAll(".start_image, .start_glow"),
@@ -78,7 +79,7 @@ const graphic = pickAsset(images, "solutions-graphic");
           scrollTrigger: { trigger: visual, start: "top bottom", end: "bottom top", scrub: true },
         },
       );
-    }
+    });
   }
 </script>
 
