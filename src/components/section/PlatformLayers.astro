@@ -1,0 +1,337 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Button from "@/components/Button.astro";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+/* The stack, exported from Figma (5405:9366) and split into layers so each
+   can move on its own. Coordinates are Figma's; one cube per slab, plus the
+   soft shadow each slab casts on the one below. */
+const slab = (y: number) => {
+  const t = (n: number) => +(n + y).toFixed(3);
+  return {
+    top: `M102.715 ${t(0)}L280.492 ${t(-102.829)}L458.269 ${t(0)}L280.492 ${t(102.828)}Z`,
+    left: `M102.715 ${t(26.357)}L280.492 ${t(129.185)}V${t(102.828)}L102.715 ${t(0)}Z`,
+    right: `M280.492 ${t(129.185)}L458.269 ${t(26.357)}V${t(0)}L280.492 ${t(102.828)}Z`,
+    edge: `M280.129 ${t(103.037)}V${t(128.556)}L103.078 ${t(26.147)}V${t(0.629)}L280.129 ${t(103.037)}ZM457.907 ${t(26.147)}L280.855 ${t(128.556)}V${t(103.037)}L457.907 ${t(0.629)}V${t(26.147)}ZM457.544 ${t(0)}L280.492 ${t(102.409)}L103.439 ${t(0)}L280.492 ${t(-102.41)}Z`,
+  };
+};
+
+const cube = (y: number) => {
+  const t = (n: number) => +(n + y).toFixed(3);
+  return {
+    top: `M212.194 ${t(0)}L280.492 ${t(-39.401)}L348.791 ${t(0)}L280.492 ${t(39.401)}Z`,
+    left: `M212.194 ${t(44.737)}L280.492 ${t(84.138)}V${t(39.401)}L212.194 ${t(0)}Z`,
+    right: `M280.492 ${t(84.138)}L348.791 ${t(44.737)}V${t(0)}L280.492 ${t(39.401)}Z`,
+  };
+};
+
+/* Bottom to top. `y` is the slab's top-face centre line, `cubeY` the cube's,
+   `label` the skewed caption on the slab's front-left face. */
+const layers = [
+  { name: "Data", y: 507.514, cubeY: 463.17, label: [177.69, 557.28] },
+  { name: "Algorithm", y: 390, cubeY: 345.657, label: [159.432, 429.224], shadow: 404.748 },
+  { name: "Sequence", y: 270.478, cubeY: 226.135, label: [162.045, 312.216], shadow: 288.239 },
+  { name: "Experience", y: 153.969, cubeY: 116.656, label: [158.985, 193.94], shadow: 169.721 },
+].map((layer) => ({ ...layer, slab: slab(layer.y), cube: cube(layer.cubeY) }));
+
+const hexagon =
+  "M77.606 544.385L280.493 661.468L483.379 544.385V117.663L280.493 0.58L77.606 117.663Z";
+---
+
+{
+  render && (
+    <Section
+      theme="light"
+      borders="both"
+      paddingTop="none"
+      paddingBottom="none"
+      class="platform_wrap"
+      containerClass="platform_layout"
+    >
+      <div class="platform_copy">
+        <div class="platform_intro">
+          <Heading class="platform_title" reveal="lines">
+            One platform.
+            <br />
+            Four layers.
+            <br />
+            Every decision.
+          </Heading>
+          <div data-animate="fade-up" data-animate-delay="0.2">
+            <Button element="link" href="/platform">
+              Explore Lyric Studio
+            </Button>
+          </div>
+        </div>
+        <Paragraph class="platform_text" reveal="lines">
+          Lyric Studio is the AI-native platform for all your supply chain
+          decisions. Four integrated layers work in concert to bring composable,
+          math-first decision-making to every corner of your organization.
+        </Paragraph>
+      </div>
+
+      <div class="platform_visual" data-platform>
+        <svg
+          class="platform_stack"
+          viewBox="70 -4 420 696"
+          role="img"
+          aria-labelledby="platform-stack-title"
+        >
+          <title id="platform-stack-title">
+            The four layers of Lyric Studio, from the bottom: Data, Algorithm,
+            Sequence and Experience, resting on Agentic Intelligence.
+          </title>
+          <defs>
+            <filter
+              id="platform-blur"
+              x="-80%"
+              y="-80%"
+              width="260%"
+              height="260%"
+              color-interpolation-filters="sRGB"
+            >
+              <feGaussianBlur stdDeviation="50" />
+            </filter>
+            {/* Reveals the dashed outline as if drawn, without touching its dashes */}
+            <mask id="platform-outline-mask" maskUnits="userSpaceOnUse">
+              <path
+                class="platform_outline-draw"
+                d={hexagon}
+                pathLength="1"
+                fill="none"
+                stroke="#fff"
+                stroke-width="6"
+              />
+            </mask>
+          </defs>
+
+          <g class="platform_base">
+            <path class="platform_well" d={hexagon} />
+            <path
+              class="platform_outline"
+              d={hexagon}
+              mask="url(#platform-outline-mask)"
+            />
+            <g class="platform_tag">
+              <path d="M280.493 660.667L76.6 542.95V569.355L280.493 687.07Z" fill="#735385" />
+              <path d="M280.493 660.667L484.386 542.95V569.353L280.493 687.07Z" fill="#482664" />
+              <text
+                transform="matrix(0.866025 -0.5 0 1 318.352 646.01)"
+                fill="#fff"
+              >
+                <tspan x="0.3" y="10.38">AGENTIC INTELLIGENCE</tspan>
+              </text>
+            </g>
+          </g>
+
+          {layers.map((layer, i) => (
+            <g class="platform_layer" data-layer={i}>
+              <g class="platform_layer-inner" style={`--_i: ${i}`}>
+                {layer.shadow && (
+                  <rect
+                    class="platform_shadow"
+                    width="126.166"
+                    height="122.601"
+                    transform={`matrix(0.866025 0.5 -0.866025 0.5 280.141 ${layer.shadow})`}
+                    filter="url(#platform-blur)"
+                  />
+                )}
+                <g class="platform_slab">
+                  <path d={layer.slab.top} />
+                  <path d={layer.slab.left} />
+                  <path d={layer.slab.right} />
+                  <path class="platform_slab-edge" d={layer.slab.edge} />
+                </g>
+                <text
+                  class="platform_label"
+                  transform={`matrix(0.866025 0.5 0 1 ${layer.label[0]} ${layer.label[1]})`}
+                >
+                  <tspan y="10.38">{layer.name.toUpperCase()}</tspan>
+                </text>
+                <g class="platform_cube">
+                  <path d={layer.cube.top} fill="#8F759D" />
+                  <path d={layer.cube.left} fill="#735385" />
+                  <path d={layer.cube.right} fill="#482664" />
+                </g>
+              </g>
+            </g>
+          ))}
+        </svg>
+      </div>
+    </Section>
+  )
+}
+
+<script>
+  import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
+
+  for (const visual of document.querySelectorAll<HTMLElement>("[data-platform]")) {
+    if (reducedMotion()) continue;
+
+    const svg = visual.querySelector("svg")!;
+    const layers = [...svg.querySelectorAll<SVGGElement>(".platform_layer")];
+    const cubes = layers.map((layer) => layer.querySelector(".platform_cube"));
+    const labels = layers.map((layer) => layer.querySelector(".platform_label"));
+    const shadows = svg.querySelectorAll(".platform_shadow");
+
+    /* Assembled state is the markup; everything below is where it starts. */
+    const tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
+
+    tl.fromTo(
+      svg.querySelector(".platform_outline-draw"),
+      { strokeDashoffset: 1, strokeDasharray: 1 },
+      { strokeDashoffset: 0, duration: 1.2, ease: "none" },
+      0,
+    )
+      .from(svg.querySelector(".platform_well"), { opacity: 0, duration: 0.6 }, 0)
+      .from(svg.querySelector(".platform_tag"), { y: 40, opacity: 0, duration: 0.6 }, 0.1);
+
+    /* Each slab drops onto the one below, its cube settles a beat later. */
+    layers.forEach((layer, i) => {
+      const at = 0.35 + i * 0.35;
+      tl.from(layer, { y: -90 - i * 30, opacity: 0, duration: 0.7 }, at)
+        .from(cubes[i], { y: -60, duration: 0.6, ease: "power3.out" }, at + 0.15)
+        .from(labels[i], { opacity: 0, duration: 0.4 }, at + 0.4);
+    });
+    tl.from(shadows, { opacity: 0, duration: 0.5, stagger: 0.35 }, 0.7);
+
+    ScrollTrigger.create({
+      trigger: visual,
+      start: "top 85%",
+      end: "center 55%",
+      scrub: 0.6,
+      animation: tl,
+    });
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    /* The columns meet the rails themselves: the copy carries the inset,
+       the visual runs rail to rail */
+    .section-border-sides > .platform_layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: stretch;
+      gap: 0;
+      padding-inline: 0;
+    }
+
+    .platform_copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: var(--space-7);
+      padding: var(--section-space-small) var(--content-inset);
+    }
+
+    .platform_intro {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-6);
+    }
+
+    .platform_title {
+      margin: 0;
+    }
+
+    .platform_text {
+      max-width: 31.25rem;
+      margin: 0;
+      color: var(--text-2);
+      font-weight: var(--primary-medium);
+    }
+
+    /* Right half: the dashed isometric grid (62px rhombs, 4/6 dashes as in
+       Figma) with the stack in the middle */
+    .platform_visual {
+      --_grid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='107.4' height='62' viewBox='0 0 107.4 62'%3E%3Cpath d='M0 0L107.4 62M0 62L107.4 0' stroke='%23ebebeb' stroke-dasharray='4.133 6.2' fill='none'/%3E%3C/svg%3E");
+      display: grid;
+      place-items: center;
+      padding: var(--space-7) var(--content-inset);
+      border-top: var(--border-width) solid var(--border);
+      background-image: var(--_grid);
+      background-size: 6.7125rem 3.875rem;
+      background-position: center;
+    }
+
+    .platform_stack {
+      width: min(100%, 20rem);
+      height: auto;
+      overflow: visible;
+    }
+
+    .platform_well {
+      fill: var(--plum-10);
+    }
+
+    .platform_outline {
+      fill: none;
+      stroke: var(--plum-400);
+      stroke-width: 1;
+      stroke-dasharray: 4 6;
+    }
+
+    .platform_slab {
+      fill: var(--white);
+    }
+
+    .platform_slab-edge {
+      fill: none;
+      stroke: #c4c4c4;
+      stroke-width: 0.725;
+    }
+
+    .platform_shadow {
+      fill: rgb(0 0 0 / 0.15);
+    }
+
+    .platform_stack text {
+      font-family: var(--primary-family);
+      font-size: 12px;
+      font-weight: var(--primary-medium);
+      letter-spacing: 0.03em;
+    }
+
+    .platform_label {
+      fill: var(--black);
+    }
+
+    /* Hovering the stack pulls the layers apart a little, like an exploded
+       view. Inner groups so it never fights the scroll animation. */
+    .platform_layer-inner {
+      transition: translate var(--motion-slow) var(--motion-ease-out);
+    }
+
+    @media (hover: hover) {
+      .platform_stack:hover .platform_layer-inner {
+        translate: 0 calc((1.5 - var(--_i)) * 10px);
+      }
+    }
+
+    @media (width >= 48rem) {
+      .section-border-sides > .platform_layout {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .platform_visual {
+        padding: 3rem var(--space-6);
+        border-top: 0;
+        border-left: var(--border-width) solid var(--border);
+      }
+
+      .platform_stack {
+        width: min(100%, 26.25rem);
+      }
+    }
+  }
+</style>
