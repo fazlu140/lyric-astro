@@ -79,7 +79,7 @@ const litCells = [
   for (const grid of document.querySelectorAll<HTMLElement>("[data-cta-grid]")) {
     const card = grid.querySelector<HTMLElement>(".cta_card")!;
     const content = grid.querySelector<HTMLElement>(".cta_card-inner")!;
-    const desktop = window.matchMedia("(width >= 80rem)");
+    const desktop = window.matchMedia("(width >= 62rem)");
     const snap = () => {
       if (desktop.matches) {
         card.style.minHeight = "";
@@ -110,7 +110,7 @@ const litCells = [
       .fromTo(
         grid.querySelectorAll(".cta_links path"),
         { strokeDasharray: 1, strokeDashoffset: 1 },
-        { strokeDashoffset: 0, duration: 0.8, ease: "power2.inOut", stagger: 0.2 },
+        { strokeDashoffset: 0, autoRound: false, duration: 0.8, ease: "power2.inOut", stagger: 0.2 },
         "-=0.2",
       )
       .from(grid.querySelectorAll(".cta_dot"), { scale: 0, duration: 0.3, stagger: 0.1 }, "<");
@@ -244,7 +244,7 @@ const litCells = [
       }
     }
 
-    /* Lit cells and connectors belong to the 20-column grid (80rem up) */
+    /* Lit cells and connectors belong to the 20-column desktop grid */
     .cta_cell.is-static,
     .cta_links,
     .cta_dot {
@@ -323,19 +323,10 @@ const litCells = [
       }
     }
 
-    /* Small laptops: 16 columns, card still in the flow */
+    /* Desktop: Figma's 20 by 8 grid with the card over 10 by 6 cells, as on
+       the live site from 992px. Below 80rem the copy steps down a size so
+       it still fits the card. */
     @media (width >= 62rem) {
-      .cta_grid {
-        --_cols: 16;
-      }
-
-      .cta_card {
-        margin-inline: calc(var(--_cell) * 3);
-      }
-    }
-
-    /* Figma's layout once a 6-cell card is tall enough for its copy */
-    @media (width >= 80rem) {
       .cta_grid {
         --_cols: 20;
         aspect-ratio: 20 / 8;
@@ -355,6 +346,22 @@ const litCells = [
         width: calc(var(--_cell) * 10);
         height: calc(var(--_cell) * 6);
         margin: 0;
+      }
+
+      .cta_card-inner {
+        gap: var(--space-3);
+        padding-block: var(--space-4);
+      }
+    }
+
+    @media (62rem <= width < 80rem) {
+      .cta_title {
+        font-size: var(--h3);
+      }
+
+      .cta_text {
+        margin-bottom: 0;
+        font-size: var(--text-small);
       }
     }
   }

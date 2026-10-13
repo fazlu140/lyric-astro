@@ -36,6 +36,10 @@ const {
     <div class="stories_head">
       <Heading class="stories_title" reveal="lines">{title}</Heading>
       <div class="stories_controls">
+        <p class="stories_count text-style-mono" aria-hidden="true">
+          <span data-stories-current>01</span>
+          <span class="stories_count-total">/ {String(stories.length).padStart(2, "0")}</span>
+        </p>
         <Button
           class="stories_arrow"
           variant="arrow"
@@ -138,9 +142,13 @@ const {
       glide(all[Math.max(0, Math.min(all.length - 1, index))]);
     };
 
+    const counter = slider.querySelector<HTMLElement>("[data-stories-current]");
     const update = () => {
       prev.disabled = track.scrollLeft <= 4;
       next.disabled = atEnd();
+      /* At the very end the last card can't reach the start edge */
+      const index = atEnd() ? items.length - 1 : nearest();
+      if (counter) counter.textContent = String(index + 1).padStart(2, "0");
     };
 
     prev.addEventListener("click", () => {
@@ -261,11 +269,24 @@ const {
       margin: 0;
     }
 
+    /* Phones: count on the left, arrows on the right, under the title */
     .stories_controls {
       display: flex;
-      flex: none;
+      flex: 1 0 100%;
+      align-items: center;
       gap: var(--space-2);
-      margin-left: auto;
+    }
+
+    .stories_count {
+      display: flex;
+      gap: 0.5ch;
+      margin: 0 auto 0 0;
+      font-size: var(--text-small);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stories_count-total {
+      color: var(--text-2);
     }
 
     .button_wrap.stories_arrow {
@@ -306,7 +327,7 @@ const {
 
     .stories_item {
       flex: none;
-      width: min(82%, 21rem);
+      width: min(86%, 21rem);
       scroll-snap-align: start;
     }
 
@@ -327,7 +348,7 @@ const {
       position: relative;
       display: block;
       flex: none;
-      aspect-ratio: 3 / 2;
+      aspect-ratio: 4 / 3;
       overflow: hidden;
     }
 
@@ -386,8 +407,14 @@ const {
       }
     }
 
+    /* Four lines at most, so every card is the same height */
     .stories_card-title {
       order: 1;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+      line-clamp: 4;
+      overflow: hidden;
       font-size: var(--h4);
       font-weight: var(--primary-medium);
       line-height: 1.35;
@@ -414,6 +441,14 @@ const {
         align-items: center;
       }
 
+      .stories_controls {
+        flex: none;
+      }
+
+      .stories_count {
+        margin-right: var(--space-3);
+      }
+
       .stories_track {
         gap: var(--space-4);
         cursor: grab;
@@ -438,6 +473,11 @@ const {
 
     /* Desktop: Figma's wide card, photo on the left, logo and button on top */
     @media (width >= 62rem) {
+      /* Figma has no count on desktop */
+      .stories_count {
+        display: none;
+      }
+
       .stories_item {
         width: min(80%, 51.8125rem);
       }
@@ -472,6 +512,7 @@ const {
 
       .stories_card-title {
         order: 0;
+        display: block;
         max-width: 27.3125rem;
         font-size: var(--h3);
         line-height: 1.44;

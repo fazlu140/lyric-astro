@@ -35,8 +35,8 @@ interface Props extends HTMLAttributes<"section"> {
   align?: "start" | "center" | "end";
   /** Fill the viewport height. */
   fullHeight?: boolean;
-  /** Divider lines: a full-width line on top, rails down the sides at the site margin, both, or a framed band on top plus rails. */
-  borders?: "none" | "top" | "sides" | "both" | "frame";
+  /** Divider lines: a full-width line on top, rails down the sides at the site margin, both, both plus a line underneath (box), or a framed band on top plus rails (frame). */
+  borders?: "none" | "top" | "sides" | "both" | "box" | "frame";
   /** Inner container classes. */
   containerClass?: string;
   /** Inner container attributes. */
@@ -87,8 +87,9 @@ const background = await slotContent(Astro.slots, "background");
         padClass("top", paddingTop),
         padClass("bottom", paddingBottom),
         fullHeight && "min-height-screen",
-        (borders === "top" || borders === "both") && "section-border-top",
-        (borders === "sides" || borders === "both" || borders === "frame") && "section-border-sides",
+        (borders === "top" || borders === "both" || borders === "box") && "section-border-top",
+        borders === "box" && "section-border-bottom",
+        (borders === "sides" || borders === "both" || borders === "box" || borders === "frame") && "section-border-sides",
         theme !== "inherit" && `theme-${theme}`,
         align && `alignment-${align}`,
         className,
@@ -124,6 +125,10 @@ const background = await slotContent(Astro.slots, "background");
       height: var(--border-width);
       background-color: var(--border);
       pointer-events: none;
+    }
+
+    .section-border-bottom {
+      border-bottom: var(--border-width) solid var(--border);
     }
 
     .section-border-sides::after {

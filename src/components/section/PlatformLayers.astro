@@ -188,7 +188,7 @@ const hexagon =
     tl.fromTo(
       svg.querySelector(".platform_outline-draw"),
       { strokeDashoffset: 1, strokeDasharray: 1 },
-      { strokeDashoffset: 0, duration: 1.2, ease: "none" },
+      { strokeDashoffset: 0, autoRound: false, duration: 1.2, ease: "none" },
       0,
     )
       .from(svg.querySelector(".platform_well"), { opacity: 0, duration: 0.6 }, 0)

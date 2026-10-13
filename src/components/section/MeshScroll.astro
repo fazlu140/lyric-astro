@@ -344,7 +344,8 @@ const linkOrder = shuffledOrder(links.length);
 
       gsap.set(cells, { opacity: 0 });
       cells.forEach((cell) => gsap.set(cell, look(stateOf(cell, 0))));
-      gsap.set(links, { strokeDashoffset: 1 });
+      /* autoRound off: GSAP rounds px values by default, and these run 1 to 0 */
+      gsap.set(links, { strokeDashoffset: 1, autoRound: false });
 
       const tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out" } });
       tl.set({}, {}, total);
@@ -369,7 +370,7 @@ const linkOrder = shuffledOrder(links.length);
           const offset = Number(link.getAttribute("data-order") ?? 0);
           tl.to(
             link,
-            { strokeDashoffset: on ? 0 : 1, duration: 0.45, ease: "power1.inOut" },
+            { strokeDashoffset: on ? 0 : 1, autoRound: false, duration: 0.45, ease: "power1.inOut" },
             on ? at + 0.3 + offset * 0.4 : at + offset * 0.3,
           );
         });
@@ -400,6 +401,29 @@ const linkOrder = shuffledOrder(links.length);
     };
     fitView();
     compact.addEventListener("change", fitView);
+
+    /* Phones: the mesh is drawn at full height and pans from Network to
+       Risk & Policies over the pinned scroll */
+    if (svg && !reducedMotion()) {
+      const graph = svg.parentElement!;
+      gsap.matchMedia().add("(width < 48rem)", () => {
+        gsap.fromTo(
+          svg,
+          { x: 0 },
+          {
+            x: () => -Math.max(0, svg.getBoundingClientRect().width - graph.clientWidth),
+            ease: "none",
+            scrollTrigger: {
+              trigger: section,
+              start: "top top",
+              end: "bottom bottom",
+              scrub: 0.6,
+              invalidateOnRefresh: true,
+            },
+          },
+        );
+      });
+    }
   }
 </script>
 
@@ -408,11 +432,8 @@ const linkOrder = shuffledOrder(links.length);
     /* Tall section, sticky stage: one slice of scroll per phase */
     .mesh_wrap {
       --_phase-scroll: 70svh;
-      height: calc(
-        100svh - var(--nav-height) + (var(--_phases) - 1) * var(--_phase-scroll) +
-          3.125rem
-      );
-      padding-top: 3.125rem;
+      height: calc(100svh - var(--nav-height) + (var(--_phases) - 1) * var(--_phase-scroll));
+      padding-top: 0;
       justify-content: start;
     }
 
@@ -659,11 +680,53 @@ const linkOrder = shuffledOrder(links.length);
       stroke-dashoffset: 0;
     }
 
+    /* Phones: title, then the mesh as large as the screen allows, then the
+       phase card. The mesh is taller than the width can show, so it pans
+       across the functions as you scroll (see script). */
     @media (width < 48rem) {
       .mesh_row_label,
       .mesh_column_label,
       .mesh_label_group {
         display: none;
+      }
+
+      .mesh_wrap > .container.mesh_stage {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .mesh_head {
+        display: contents;
+      }
+
+      .mesh_intro {
+        order: 0;
+        padding-block: var(--space-4);
+        border-bottom: var(--border-width) solid var(--border);
+      }
+
+      .mesh_lead {
+        display: none;
+      }
+
+      .mesh_graph {
+        order: 1;
+        align-items: stretch;
+        overflow: hidden;
+        padding-block: var(--space-3);
+      }
+
+      .mesh_svg {
+        width: auto;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        flex: none;
+      }
+
+      .mesh_phase {
+        order: 2;
+        padding-block: var(--space-4);
+        border-top: var(--border-width) solid var(--border);
       }
     }
 
