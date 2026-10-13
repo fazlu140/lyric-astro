@@ -42,6 +42,18 @@ const assets = [
     from: `${CDN}/6a58b3fb17fa871a4e99ec59_7d356d613acfdcf875de2071f4da9a2e_Capacity%20%26%20Labor%20Visual.avif`,
     to: "src/assets/images/home/decisions/06-capacity-labor.avif",
   },
+  {
+    from: `${CDN}/6a50156b1a76d544a22906c1_67ad7b2326a4926842bac5681fe72ac0_Creator%20Zone%20Visual.avif`,
+    to: "src/assets/images/home/zones/creator-zone.avif",
+  },
+  {
+    from: `${CDN}/6a62558d16018d3f2277d695_Consumer%20Zone%20Visual.avif`,
+    to: "src/assets/images/home/zones/consumer-zone.avif",
+  },
+  {
+    from: `${CDN}/6a48108a7a6f23b4a84649be_Solution%20Graphic.avif`,
+    to: "src/assets/images/home/solutions-graphic.avif",
+  },
 ];
 
 let failed = 0;

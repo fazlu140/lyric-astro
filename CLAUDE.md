@@ -38,10 +38,10 @@ The live Webflow site (https://lyric.tech) is a valid source for media. Inspect 
 | 4 | Supply Chains Run on Decisions | `5405:8076` (states `6826:322`, `6826:361`, `6826:337`, `6826:350`, `6826:268`) | Scroll reveals the words one at a time; background swaps to the matching image/video. | built (`DecisionsScroll`, pinned) |
 | 5 | Meet Your Mesh | `5405:8144` (phase 0), `5451:1494` (phase 1), `6698:7343` (full mesh) | Animation from client slides + Slack video. Live site: pinned, 4 cards, 357-frame image sequence. | built (`MeshScroll`, SVG mesh) |
 | 6 | One platform. Four layers. | `5405:8329` (stack `5405:9366`) | — | built (`PlatformLayers`, SVG stack) |
-| 7 | Control for the Creator / Clarity for the Consumer | `5405:9391` (screens `6544:5017`, `6544:4820`) | Shows the Creator Zone and Consumer Zone sides. | |
-| 8 | Start anywhere | `5405:9577` | — | |
-| 9 | We deliver measurable results | `5405:9588` | Card slides. | |
-| 10 | CTA + Footer | CTA `5405:9636`, footer `5405:9756` | Footer animation: prototype.lyric.tech/p/540/lyric-footer (login needed, ask Fazlu). | |
+| 7 | Control for the Creator / Clarity for the Consumer | `5405:9391` (screens `6544:5017`, `6544:4820`) | Shows the Creator Zone and Consumer Zone sides. | built (`ZonesCompare`, comparison slider) |
+| 8 | Start anywhere | `5405:9577` | — | built (`SolutionsStart`) |
+| 9 | We deliver measurable results | `5405:9588` | Card slides. | built (`CustomerStories`, native scroll-snap slider) |
+| 10 | CTA + Footer | CTA `5405:9636`, footer `5405:9756` | Footer animation: prototype.lyric.tech/p/540/lyric-footer (login needed, ask Fazlu). | built (`CtaGrid`, `global/Footer` + `media/DisperseGraphic`) |
 
 ## Design decisions
 
@@ -110,6 +110,16 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 
 **One platform. Four layers.** (`section/PlatformLayers.astro`): copy and button from the live site ("Explore Lyric Studio" → /platform), layout from Figma: two equal columns between the rails, copy at the content inset with the paragraph pinned to the bottom, the visual running rail to rail with a divider. The live site plays a 2-second, 972×1170 video of the stack once. Ours is the Figma stack as inline SVG (each slab, cube, shadow and label a separate group) assembled by a scroll-scrubbed GSAP timeline: the dashed outline draws in (through a mask, so its dashes stay intact), the Agentic Intelligence base rises, then each slab drops onto the one below with its cube settling a beat later. Hovering the stack spreads the layers like an exploded view (CSS `translate` on inner groups, so it never fights GSAP's transforms). The dashed isometric grid is one 2 KB SVG tile as a CSS background instead of Figma's 1,024 rotated rectangles. On mobile the visual stacks under the copy.
 
+**Creator / Consumer** (`section/ZonesCompare.astro`): copy from the live site ("Confidence for the Consumer", Figma says "Clarity"). Both screens are full-size images stacked in one grid cell; the Consumer one is clipped from the left at `--_split`, so moving the divide never moves or rescales an image. With a mouse the divide follows the pointer (eased, the loop stops at rest) and returns to the middle on leave, like the live site; on touch you drag it (`touch-action: pan-y` keeps vertical scrolling); the knob is a keyboard slider (arrows, Home, End). It nudges once when it first scrolls into view so it reads as interactive. On phones both screens show at 1.8x from the top left so the UI stays legible. Stand-ins are 1x Figma screens until `npm run fetch-assets` brings the live 2400px files.
+
+**Start anywhere** (`section/SolutionsStart.astro`): same split as One platform, dark. The render drifts slower than the page (scrubbed `yPercent`), and a radial glow breathes over the purple block (CSS opacity animation, off for reduced motion).
+
+**Customer stories** (`section/CustomerStories.astro`, data in `src/data/customer-stories.ts`): the 15 live stories (titles, links, images, logos), Figma's wide card. No Swiper: a native `scroll-snap` track (touch and trackpad for free), arrow buttons that disable at the ends, mouse drag that never fires a click, and autoplay every 5s that pauses on hover/focus/off-screen and stops for good after any interaction (none for reduced motion). The track runs rail to rail and clips under the right rail. Images are served from the Webflow CMS CDN through Astro's image service (`image.domains` in `astro.config.mjs`), so builds need network access to it; when the CMS moves to Astro this becomes a content collection.
+
+**CTA** (`section/CtaGrid.astro`): Figma's 20 by 8 grid of square dashed cells (one SVG tile as a background, sized with `cqw` so cells stay square), card over columns 6 to 15, lit cells and two connectors from Figma. On entry the lit cells switch on and the connectors draw; while on screen a random cell comes online now and then, and the cell under the mouse lights and fades. Phones use 8 columns with the card inset one cell. Copy from the live site.
+
+**Footer** (`global/Footer.astro`): Figma layout with the live site's links, AI assistant links and socials. "Ask AI" links carry the current page's URL (live always sends the homepage). The big wordmark is `media/DisperseGraphic.astro`, a reusable wrapper for any SVG: blocks scatter from the pointer and spring back, as on the live site, but at rest the real SVG shows (sharp, instant, no canvas painting), the blocks are prepared in idle time once it nears the screen, the canvas only shows while blocks move, and a tap scatters them on touch screens.
+
 **Pinned sections in Lumos:** `Section` treats any child that isn't `.container` as a background layer (absolute, no pointer events), so a sticky stage either is the container (`containerClass`) or opts back in with `inset: auto; pointer-events: auto`. And `.container` centres its content (`justify-content: center`), so a grid stage needs `grid-template-columns: minmax(0, 1fr)` or its column shrinks to its content.
 
 **Nav dropdown** (`NavDropdown.astro`): Resource Hub mega menu, content copied from the live site (Figma has no design for it). Opens on hover with a short close delay on desktop, on click or Enter everywhere, closes on Escape or when focus leaves. The page behind blurs. In the mobile menu it becomes an accordion; while it is open the menu becomes a full-height sheet that scrolls on its own, and the opened group scrolls to the top.
@@ -153,6 +163,12 @@ Themes: `theme-light` white / black text / grey-500 muted / grey-80 lines. `them
 - Answer questions fully before continuing. Keep lessons short unless asked for more.
 
 ## Still open
+
+- Cookie Settings in the footer is a button with `data-cookie-settings`; wire it to the consent tool when one is added.
+- Footer socials follow the live site (LinkedIn, YouTube); Figma shows X and LinkedIn. Footer link columns also follow the live site.
+- Customer story images load from the Webflow CDN at build time. If the CMS is retired, download them (or move to a content collection) first.
+- Figma's 50px strips between sections (above the CTA, around the footer) are left out, consistent with the rest of the page. Confirm.
+- Section 7 and 9 headlines use the live copy ("Confidence for the Consumer", "Delivering measurable results"); Figma says "Clarity" and "We deliver". Confirm with the designer.
 
 - General Sans font files are a stand-in from a public GitHub mirror. Replace with the official Fontshare files (or the ones from the Webflow project) before launch.
 - Client logos are 1x crops from a Figma screenshot (40px tall, soft on retina). Fazlu to export the 24 logo frames from `7758:2967` as 2x PNG or SVG into `src/assets/logos/clients/` with the same file names.

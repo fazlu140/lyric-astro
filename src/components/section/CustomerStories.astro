@@ -1,0 +1,405 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Button from "@/components/Button.astro";
+import Img from "@/components/media/Img.astro";
+import Icon from "@/components/media/Icon.astro";
+import caret from "@/assets/icons/caret-right.svg";
+import { customerStories, type CustomerStory } from "@/data/customer-stories.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Heading above the slider. */
+  title?: string;
+  /** Stories to show, in order. */
+  stories?: CustomerStory[];
+};
+
+const {
+  render = true,
+  title = "Delivering measurable results",
+  stories = customerStories,
+} = Astro.props;
+---
+
+<Section
+  render={render && stories.length > 0}
+  theme="dark"
+  borders="both"
+  paddingTop="medium"
+  paddingBottom="medium"
+  class="stories_wrap"
+  containerClass="stories_layout"
+>
+  <div class="stories_slider" data-stories>
+    <div class="stories_head">
+      <Heading class="stories_title" reveal="lines">{title}</Heading>
+      <div class="stories_controls">
+        <Button
+          class="stories_arrow"
+          variant="arrow"
+          emphasis="secondary"
+          direction="back"
+          label="Previous story"
+          data-stories-prev
+        />
+        <Button
+          class="stories_arrow"
+          variant="arrow"
+          emphasis="secondary"
+          label="Next story"
+          data-stories-next
+        />
+      </div>
+    </div>
+
+    <ul class="stories_track" aria-label="Customer stories" data-animate="fade-left" data-animate-delay="0.1">
+      {stories.map((story, i) => (
+        <li class="stories_item">
+          <a class="stories_card" href={story.href}>
+            <span class="stories_media">
+              <Img
+                class="stories_image"
+                src={story.image.src}
+                alt=""
+                width={640}
+                height={780}
+                variant="constrained"
+                sizes="(width >= 48rem) 20rem, 88vw"
+                loading={i < 2 ? "eager" : "lazy"}
+              />
+            </span>
+            <span class="stories_content">
+              <span class="stories_top">
+                <Img
+                  class="stories_logo"
+                  src={story.logo.src}
+                  alt={story.logo.alt}
+                  height={40}
+                  width={Math.round((story.logo.width / story.logo.height) * 40)}
+                  variant="densities"
+                  transparent
+                />
+                <span class="stories_read text-style-mono" aria-hidden="true">
+                  Read story
+                  <Icon src={caret} variant="small" />
+                </span>
+              </span>
+              <span class="stories_card-title">{story.title}</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Section>
+
+<script>
+  import { reducedMotion } from "@/utils/gsap.ts";
+
+  const AUTOPLAY_MS = 5000;
+
+  for (const slider of document.querySelectorAll<HTMLElement>("[data-stories]")) {
+    const track = slider.querySelector<HTMLElement>(".stories_track")!;
+    const prev = slider.querySelector<HTMLButtonElement>("[data-stories-prev]")!;
+    const next = slider.querySelector<HTMLButtonElement>("[data-stories-next]")!;
+    const items = [...track.children] as HTMLElement[];
+
+    /* Index of the card nearest the start edge */
+    const current = () => {
+      const start = track.scrollLeft;
+      let best = 0;
+      items.forEach((item, i) => {
+        if (Math.abs(item.offsetLeft - items[0].offsetLeft - start) <
+          Math.abs(items[best].offsetLeft - items[0].offsetLeft - start)) best = i;
+      });
+      return best;
+    };
+
+    const atEnd = () => track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+
+    const go = (index: number) => {
+      const target = items[Math.max(0, Math.min(items.length - 1, index))];
+      track.scrollTo({
+        left: target.offsetLeft - items[0].offsetLeft,
+        behavior: reducedMotion() ? "auto" : "smooth",
+      });
+    };
+
+    const update = () => {
+      prev.disabled = track.scrollLeft <= 4;
+      next.disabled = atEnd();
+    };
+
+    prev.addEventListener("click", () => {
+      stop();
+      go(current() - 1);
+    });
+    next.addEventListener("click", () => {
+      stop();
+      go(current() + 1);
+    });
+    track.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    update();
+
+    /* Mouse drag, as on touch. Snapping waits until the drag ends, and a
+       drag never counts as a click on the card under it. */
+    let dragStart: { x: number; left: number } | null = null;
+    let dragged = false;
+    track.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "mouse" || event.button !== 0) return;
+      dragStart = { x: event.clientX, left: track.scrollLeft };
+      dragged = false;
+    });
+    window.addEventListener("pointermove", (event) => {
+      if (!dragStart) return;
+      const dx = event.clientX - dragStart.x;
+      if (!dragged && Math.abs(dx) > 6) {
+        dragged = true;
+        stop();
+        track.classList.add("is-dragging");
+      }
+      if (dragged) track.scrollLeft = dragStart.left - dx;
+    });
+    window.addEventListener("pointerup", () => {
+      if (!dragStart) return;
+      dragStart = null;
+      if (!dragged) return;
+      track.classList.remove("is-dragging");
+      go(current());
+    });
+    track.addEventListener("click", (event) => {
+      if (dragged) event.preventDefault();
+    }, true);
+    track.addEventListener("dragstart", (event) => event.preventDefault());
+
+    /* Autoplay: steps on while the slider is on screen and untouched. Any
+       interaction stops it for good; hover and focus pause it. */
+    let timer = 0;
+    let stopped = reducedMotion();
+    let visible = false;
+    let paused = false;
+
+    function stop() {
+      stopped = true;
+      window.clearInterval(timer);
+    }
+
+    const sync = () => {
+      window.clearInterval(timer);
+      if (stopped || paused || !visible || document.hidden) return;
+      timer = window.setInterval(() => (atEnd() ? go(0) : go(current() + 1)), AUTOPLAY_MS);
+    };
+
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      sync();
+    }, { threshold: 0.4 }).observe(track);
+    slider.addEventListener("pointerenter", () => { paused = true; sync(); });
+    slider.addEventListener("pointerleave", () => { paused = false; sync(); });
+    slider.addEventListener("focusin", () => { paused = true; sync(); });
+    slider.addEventListener("focusout", () => { paused = false; sync(); });
+    track.addEventListener("touchstart", stop, { passive: true });
+    track.addEventListener("wheel", (event) => {
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) stop();
+    }, { passive: true });
+    document.addEventListener("visibilitychange", sync);
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    .stories_slider {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-8);
+      min-width: 0;
+    }
+
+    .stories_head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-5);
+    }
+
+    .stories_title {
+      margin: 0;
+    }
+
+    .stories_controls {
+      display: flex;
+      flex: none;
+      gap: var(--space-3);
+    }
+
+    .button_wrap.stories_arrow {
+      width: 3rem;
+      height: 3rem;
+      padding: 0;
+      border-radius: 0;
+      & .button_mark {
+        --_size: 1.25rem;
+      }
+    }
+
+    /* Runs rail to rail: the first card lines up with the copy, the rest
+       slide out under the right rail */
+    .stories_track {
+      display: flex;
+      gap: var(--space-3);
+      margin: 0 calc(var(--content-inset) * -1);
+      padding: 0 var(--content-inset);
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: var(--content-inset);
+      scrollbar-width: none;
+      list-style: none;
+      &::-webkit-scrollbar {
+        display: none;
+      }
+      &.is-dragging {
+        scroll-snap-type: none;
+        cursor: grabbing;
+        & * {
+          pointer-events: none;
+        }
+      }
+    }
+
+    .stories_item {
+      flex: none;
+      width: min(88%, 22rem);
+      scroll-snap-align: start;
+    }
+
+    .stories_card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background-color: var(--grey-800);
+      color: var(--white);
+      text-decoration: none;
+      &:focus-visible {
+        outline-offset: calc(var(--border-width) * -2);
+      }
+    }
+
+    .stories_media {
+      position: relative;
+      display: block;
+      flex: none;
+      aspect-ratio: 16 / 11;
+      overflow: clip;
+    }
+
+    .stories_image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: scale var(--motion-slow) var(--motion-ease-out);
+    }
+
+    .stories_content {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: var(--space-6);
+      padding: var(--space-5);
+    }
+
+    .stories_top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      min-height: 3rem;
+    }
+
+    .stories_logo {
+      width: auto;
+      max-width: 9rem;
+      height: auto;
+      max-height: 2.5rem;
+      object-fit: contain;
+    }
+
+    .stories_read {
+      display: inline-flex;
+      flex: none;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border: var(--border-width) solid var(--white);
+      font-size: var(--text-small);
+      line-height: 1.2;
+      transition:
+        background-color var(--hover-duration) var(--hover-ease),
+        color var(--hover-duration) var(--hover-ease);
+      & .icon {
+        --_size: 1rem;
+        transition: translate var(--hover-duration) var(--hover-ease);
+      }
+    }
+
+    .stories_card-title {
+      font-size: var(--h4);
+      font-weight: var(--primary-medium);
+      line-height: 1.35;
+    }
+
+    @media (hover: hover) {
+      .stories_card:hover {
+        & .stories_image {
+          scale: 1.05;
+        }
+        & .stories_read {
+          background-color: var(--white);
+          color: var(--black);
+          & .icon {
+            translate: 0.25rem 0;
+          }
+        }
+      }
+    }
+
+    /* Desktop: Figma's wide card, photo on the left */
+    @media (width >= 48rem) {
+      .stories_track {
+        gap: var(--space-4);
+        cursor: grab;
+      }
+
+      .stories_item {
+        width: min(80%, 51.8125rem);
+      }
+
+      .stories_card {
+        flex-direction: row;
+        min-height: 24.375rem;
+      }
+
+      .stories_media {
+        width: 38.6%;
+        aspect-ratio: auto;
+      }
+
+      .stories_content {
+        padding: 2.25rem;
+      }
+
+      .stories_card-title {
+        max-width: 27.3125rem;
+        font-size: var(--h3);
+        line-height: 1.44;
+      }
+    }
+  }
+</style>

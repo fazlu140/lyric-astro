@@ -6,6 +6,8 @@ import { isNoindexRoute } from "./src/utils/seo.ts";
 
 export default defineConfig({
   site: SITE_URL,
+  /* Customer story images come from the Webflow CMS until it moves here */
+  image: { domains: ["cdn.prod.website-files.com"] },
   integrations: [
     sitemap({
       filter: (page) => !isNoindexRoute(new URL(page).pathname),

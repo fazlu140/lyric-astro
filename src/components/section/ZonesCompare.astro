@@ -1,0 +1,363 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Img from "@/components/media/Img.astro";
+import { pickAsset } from "@/utils/assets.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/home/zones/*.{png,jpg,webp,avif}",
+  { eager: true },
+);
+const creator = pickAsset(images, "creator-zone");
+const consumer = pickAsset(images, "consumer-zone");
+---
+
+<Section
+  render={render}
+  theme="light"
+  borders="both"
+  paddingTop="small"
+  paddingBottom="small"
+  class="zones_wrap"
+  containerClass="zones_layout"
+>
+  <div class="zones_head">
+    <Heading class="zones_title" reveal="lines">
+      Control for the Creator.
+      <br />
+      Confidence for the Consumer.
+    </Heading>
+    <Paragraph class="zones_text" reveal="lines" revealDelay={0.2}>
+      From idea to experience in hours.
+      <br />
+      From insight to decision without hesitation.
+    </Paragraph>
+  </div>
+
+  <div class="zones_compare" style="--_split: 50%" data-zones data-animate="fade">
+    <figure class="zones_side zones_creator">
+      <Img
+        class="zones_image"
+        src={creator}
+        alt="The Creator Zone: a decision built as a sequence of connected blocks"
+        width={1200}
+        height={726}
+        variant="constrained"
+        sizes="(width >= 82rem) 73rem, 92vw"
+        loading="lazy"
+      />
+      <figcaption class="zones_chip">The Creator Zone</figcaption>
+    </figure>
+    <figure class="zones_side zones_consumer">
+      <Img
+        class="zones_image"
+        src={consumer}
+        alt="The Consumer Zone: the same decision as a dashboard with insights and forecasts"
+        width={1200}
+        height={726}
+        variant="constrained"
+        sizes="(width >= 82rem) 73rem, 92vw"
+        loading="lazy"
+      />
+      <figcaption class="zones_chip">The Consumer Zone</figcaption>
+    </figure>
+    <div
+      class="zones_handle"
+      role="slider"
+      tabindex="0"
+      aria-label="Compare the Creator Zone and the Consumer Zone"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="50"
+      aria-valuetext="Half and half"
+    >
+      <span class="zones_knob" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="32" height="32">
+          <path d="M13 10 7 16l6 6zM19 10l6 6-6 6z" fill="currentColor"></path>
+        </svg>
+      </span>
+    </div>
+  </div>
+</Section>
+
+<script>
+  import { ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-zones]")) {
+    const handle = root.querySelector<HTMLElement>(".zones_handle")!;
+    const still = reducedMotion();
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+
+    let split = 50;
+    let target = 50;
+    let raf = 0;
+    let dragging = false;
+    let touched = false;
+
+    const render = () => {
+      root.style.setProperty("--_split", `${split}%`);
+      const value = Math.round(split);
+      handle.setAttribute("aria-valuenow", String(value));
+      handle.setAttribute(
+        "aria-valuetext",
+        value <= 5 ? "Consumer Zone" : value >= 95 ? "Creator Zone" : `${value}% Creator Zone`,
+      );
+      root.classList.toggle("is-creator-hidden", split < 18);
+      root.classList.toggle("is-consumer-hidden", split > 82);
+    };
+
+    /* Eases the split towards its target, then stops: no loop at rest. */
+    const tick = () => {
+      split += (target - split) * (dragging ? 0.45 : 0.16);
+      if (Math.abs(target - split) < 0.05) split = target;
+      render();
+      raf = split === target ? 0 : requestAnimationFrame(tick);
+    };
+
+    const moveTo = (value: number, instant = false) => {
+      target = Math.min(100, Math.max(0, value));
+      if (instant || still) {
+        split = target;
+        render();
+        return;
+      }
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+
+    const fromPointer = (event: PointerEvent) => {
+      const box = root.getBoundingClientRect();
+      return ((event.clientX - box.left) / box.width) * 100;
+    };
+
+    /* Mouse: the divide follows the pointer and returns to the middle. */
+    root.addEventListener("pointermove", (event) => {
+      if (dragging) return moveTo(fromPointer(event));
+      if (event.pointerType === "mouse" && finePointer.matches) {
+        touched = true;
+        moveTo(fromPointer(event));
+      }
+    });
+    root.addEventListener("pointerleave", (event) => {
+      if (event.pointerType === "mouse" && !dragging) moveTo(50);
+    });
+
+    /* Touch and pen: drag sideways, page still scrolls vertically. */
+    root.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse" && finePointer.matches) return;
+      touched = true;
+      dragging = true;
+      root.setPointerCapture(event.pointerId);
+      moveTo(fromPointer(event));
+    });
+    const release = () => {
+      dragging = false;
+    };
+    root.addEventListener("pointerup", release);
+    root.addEventListener("pointercancel", release);
+
+    handle.addEventListener("keydown", (event) => {
+      const steps: Record<string, number> = {
+        ArrowLeft: target - 5,
+        ArrowDown: target - 5,
+        ArrowRight: target + 5,
+        ArrowUp: target + 5,
+        Home: 0,
+        End: 100,
+      };
+      if (!(event.key in steps)) return;
+      event.preventDefault();
+      touched = true;
+      moveTo(steps[event.key]);
+    });
+
+    /* A one-time nudge when it comes into view, so it reads as draggable. */
+    if (!still) {
+      ScrollTrigger.create({
+        trigger: root,
+        start: "top 60%",
+        once: true,
+        onEnter: () => {
+          if (touched) return;
+          moveTo(64);
+          window.setTimeout(() => !touched && moveTo(38), 650);
+          window.setTimeout(() => !touched && moveTo(50), 1300);
+        },
+      });
+    }
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    .zones_layout {
+      gap: var(--space-8);
+    }
+
+    .zones_head {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+      text-align: center;
+    }
+
+    .zones_title,
+    .zones_text {
+      margin: 0;
+    }
+
+    .zones_text {
+      color: var(--text-2);
+      font-weight: var(--primary-medium);
+    }
+
+    /* Two full-size screens stacked; the Consumer one is clipped from the
+       left at the split, so moving the split never moves an image. */
+    .zones_compare {
+      position: relative;
+      display: grid;
+      width: 100%;
+      aspect-ratio: 1200 / 726;
+      border: 0.625rem solid var(--grey-50);
+      background-color: var(--grey-50);
+      overflow: clip;
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .zones_side {
+      grid-area: 1 / 1;
+      position: relative;
+      margin: 0;
+      min-width: 0;
+    }
+
+    .zones_consumer {
+      clip-path: inset(0 0 0 var(--_split));
+    }
+
+    .zones_image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .zones_chip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      padding: 0.5rem 0.625rem;
+      background-color: var(--white);
+      border: var(--border-width) solid var(--grey-80);
+      border-top: 0;
+      border-left: 0;
+      color: var(--black);
+      font-family: var(--secondary-family);
+      font-size: var(--text-small);
+      line-height: 1.2;
+      transition: opacity var(--motion-base) var(--motion-ease-out);
+    }
+
+    .zones_consumer .zones_chip {
+      left: auto;
+      right: 0;
+      border-right: 0;
+      border-left: var(--border-width) solid var(--grey-80);
+    }
+
+    .zones_compare.is-creator-hidden .zones_creator .zones_chip,
+    .zones_compare.is-consumer-hidden .zones_consumer .zones_chip {
+      opacity: 0;
+    }
+
+    /* The divide: a plum line in a faint band, knob in the middle */
+    .zones_handle {
+      position: absolute;
+      inset-block: 0;
+      left: var(--_split);
+      z-index: 1;
+      width: 1.25rem;
+      translate: -50% 0;
+      display: grid;
+      place-items: center;
+      background-color: rgb(71 37 93 / 0.08);
+      cursor: ew-resize;
+      &::before {
+        content: "";
+        position: absolute;
+        inset-block: 0;
+        left: 50%;
+        width: var(--border-width);
+        background-color: var(--plum-400);
+      }
+      &:focus-visible {
+        outline: none;
+        & .zones_knob {
+          outline: var(--focus-width, 0.125rem) solid var(--plum-400);
+          outline-offset: 0.1875rem;
+        }
+      }
+    }
+
+    .zones_knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      translate: -50% -50%;
+      display: grid;
+      place-items: center;
+      width: 3.125rem;
+      height: 3.125rem;
+      border-radius: 50%;
+      background-color: var(--plum-400);
+      color: var(--white);
+      transition: scale var(--motion-fast) var(--motion-ease-out);
+      & svg {
+        width: 1.5rem;
+        height: 1.5rem;
+      }
+    }
+
+    .zones_compare:active .zones_knob {
+      scale: 0.92;
+    }
+
+    /* Phones: a taller crop from the top left, where both screens start,
+       so the UI stays legible instead of shrinking to a strip */
+    @media (width < 48rem) {
+      .zones_compare {
+        aspect-ratio: 4 / 3.4;
+        border-width: 0.375rem;
+      }
+
+      /* Both screens at 1.8x, anchored top left: readable UI, still aligned */
+      .zones_image {
+        width: 180%;
+        height: auto;
+        max-width: none;
+        object-fit: initial;
+      }
+
+      .zones_knob {
+        width: 2.5rem;
+        height: 2.5rem;
+      }
+
+      .zones_chip {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.5rem;
+      }
+    }
+  }
+</style>

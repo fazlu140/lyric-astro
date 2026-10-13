@@ -6,6 +6,10 @@ import LogoMarquee from "@/components/content/LogoMarquee.astro";
 import DecisionsScroll from "@/components/section/DecisionsScroll.astro";
 import MeshScroll from "@/components/section/MeshScroll.astro";
 import PlatformLayers from "@/components/section/PlatformLayers.astro";
+import ZonesCompare from "@/components/section/ZonesCompare.astro";
+import SolutionsStart from "@/components/section/SolutionsStart.astro";
+import CustomerStories from "@/components/section/CustomerStories.astro";
+import CtaGrid from "@/components/section/CtaGrid.astro";
 ---
 
 <Layout theme="dark">
@@ -30,4 +34,16 @@ import PlatformLayers from "@/components/section/PlatformLayers.astro";
 
   {/* One platform, four layers */}
   <PlatformLayers />
+
+  {/* Control for the creator, confidence for the consumer */}
+  <ZonesCompare />
+
+  {/* Start anywhere */}
+  <SolutionsStart />
+
+  {/* Customer stories */}
+  <CustomerStories />
+
+  {/* Closing call to action */}
+  <CtaGrid />
 </Layout>
