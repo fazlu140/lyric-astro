@@ -72,6 +72,10 @@ const assets = [
     to: "src/assets/images/platform/layers/04-data.avif",
   },
   {
+    from: `${CDN}/6a58d24d297b3096ff2ee5a8_bg.avif`,
+    to: "src/assets/images/platform/agentic-poster.avif",
+  },
+  {
     from: `${CDN}/6a514614352f0fcce81fb34f_60a17c7015e29ebbfe54f1fe7129b513_agent_tab-image-1.avif`,
     to: "src/assets/images/platform/agents/01-decisions.avif",
   },

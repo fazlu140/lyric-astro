@@ -54,7 +54,7 @@ export const layers = [
   },
   {
     name: "Agentic AI",
-    image: "agentic-cylinder",
+    image: "agentic-poster",
     video: `${MEDIA}/processtimelinevideo60fps.mp4`,
     lead: "Every core aligns into one cylinder — the spine of the platform.",
     text: "Each layer's agent core stacks with the next. Together they form a single cylinder running through the architecture — agentic AI as an integral structure, not a shell on top. MCP and A2A connect it outward.",
