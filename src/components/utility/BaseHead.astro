@@ -1,7 +1,7 @@
 ---
 import { Font } from "astro:assets";
 import { SITE_NAME, SITE_DESCRIPTION } from "@/consts.ts";
-import { isNoindexRoute } from "@/utils/seo.ts";
+import { ALLOW_INDEXING, isNoindexRoute } from "@/utils/seo.ts";
 import type { SeoProps } from "@/types.ts";
 
 type Props = SeoProps;
@@ -14,7 +14,8 @@ const {
   noindex,
 } = Astro.props;
 
-const isNoindex = noindex ?? isNoindexRoute(Astro.url.pathname);
+/* While ALLOW_INDEXING is off, no page or CMS field can switch noindex off */
+const isNoindex = !ALLOW_INDEXING || (noindex ?? isNoindexRoute(Astro.url.pathname));
 
 /* A title that already names its brand ("… | Lyric Studio") is kept as is */
 const pageTitle = title ? (title.includes(" | ") ? title : `${title} | ${SITE_NAME}`) : SITE_NAME;
@@ -35,7 +36,7 @@ const socialImage = new URL(image, Astro.site);
 <title>{pageTitle}</title>
 <meta name="description" content={description} />
 <link rel="canonical" href={canonical} />
-{isNoindex && <meta name="robots" content="noindex, nofollow" />}
+{isNoindex && <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />}
 
 <meta property="og:type" content={type} />
 <meta property="og:site_name" content={SITE_NAME} />
