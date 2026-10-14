@@ -169,6 +169,27 @@ Figma section `5405:10880`, frame `5405:13684`. Copy, SEO and media from the liv
 
 Titles that already contain " | " are used as is by `BaseHead` (so this page keeps live's "| Lyric Studio").
 
+## CMS (Sanity)
+
+Content that editors change lives in Sanity; layout, animation and the rest of the copy stay in code. Studio is embedded in the site at **/studio** (`@sanity/astro` + `@astrojs/react`; React loads only on that route; hash routing because the site is static). Project ID and dataset come from `.env` (`PUBLIC_SANITY_PROJECT_ID`, `PUBLIC_SANITY_DATASET`, see `.env.example`); both are public. **Without a project ID the site builds from the local data files and there is no /studio**, so nothing breaks before the project exists or on a Vercel build without the variables.
+
+| File | What it is |
+| --- | --- |
+| `sanity.config.ts` | The Studio: plugins (Structure, Vision), schema, singleton rules |
+| `sanity.cli.ts` | Settings for `npx sanity …` (reads `.env`) |
+| `src/sanity/schemaTypes/` | The content model: `seo` (object), `customerStory`, `faq` (answer is Portable Text), singletons `homePage`, `platformPage`, `siteSettings` |
+| `src/sanity/structure.ts` | The Studio's left menu (pages, lists, settings) |
+| `src/sanity/queries.ts` | GROQ queries (try them in /studio → Vision) |
+| `src/sanity/client.ts` | Build-time client (published content only, no token), `urlFor()` image URLs, Portable Text to HTML |
+| `src/sanity/content.ts` | `getHomeContent()`, `getPlatformContent()`: Sanity data in the shape the components already use, local fallback per document |
+| `scripts/sanity-seed.mjs` | `npm run sanity:seed` writes `sanity-seed.ndjson` (gitignored) from the local data, for `npx sanity dataset import` |
+
+- In the CMS now: home SEO + customer stories slider (references, drag to reorder), platform SEO + FAQ list, site default SEO. Pages merge page SEO over site SEO over the page's hardcoded fallback.
+- Lists are documents, pages pick and order them with **references** (one FAQ can sit on several pages). One-off page content goes in the page's **singleton** (fixed ID, no create or delete in the Studio).
+- Static site: content is read at build time. Publishing needs a rebuild: a Sanity webhook calls a Vercel deploy hook.
+- Story images come from Sanity's CDN (`cdn.sanity.io`, in `image.domains`) once imported; the seed import copies them from the Webflow CDN.
+- Next steps, in order: move more sections into the model one at a time; customer story pages (`/customer-stories/[slug].astro` with `getStaticPaths`); Visual Editing (needs server rendering on Vercel, `@astrojs/vercel`, the Presentation tool and a read token).
+
 ## Animation and performance
 
 - **GSAP rounds px values** of CSS properties by default. Anything that tweens between small numbers, like `strokeDashoffset` from 1 to 0 on a `pathLength="1"` path, needs `autoRound: false` or it jumps from 1 to 0 in one step.

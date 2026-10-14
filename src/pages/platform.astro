@@ -12,14 +12,18 @@ import AgentTabs from "@/components/section/AgentTabs.astro";
 import RoleCards from "@/components/section/RoleCards.astro";
 import Integrations from "@/components/section/Integrations.astro";
 import Faq from "@/components/section/Faq.astro";
-import { faq } from "@/data/platform.ts";
+import { getPlatformContent } from "@/sanity/content.ts";
+
+/* Content from Sanity (or the local files until it is set up). The SEO
+   below is the fallback when the CMS fields are empty. */
+const { seo, faqs } = await getPlatformContent({
+  title: "AI Agents That Know Supply Chain | Lyric Studio",
+  description:
+    "Lyric Studio puts AI agents at every layer of the platform, grounded, traceable, and auditable, working with planners and modelers on supply chain decisions.",
+});
 ---
 
-<Layout
-  theme="light"
-  title="AI Agents That Know Supply Chain | Lyric Studio"
-  description="Lyric Studio puts AI agents at every layer of the platform, grounded, traceable, and auditable, working with planners and modelers on supply chain decisions."
->
+<Layout theme="light" {...seo}>
   {/* The AI-native supply chain platform */}
   <PlatformHero />
 
@@ -64,7 +68,7 @@ import { faq } from "@/data/platform.ts";
   </GridFrame>
 
   {/* FAQ */}
-  <Faq items={faq} />
+  <Faq items={faqs} />
 </Layout>
 
 <style is:global>

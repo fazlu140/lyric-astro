@@ -10,9 +10,13 @@ import ZonesCompare from "@/components/section/ZonesCompare.astro";
 import SolutionsStart from "@/components/section/SolutionsStart.astro";
 import CustomerStories from "@/components/section/CustomerStories.astro";
 import CtaGrid from "@/components/section/CtaGrid.astro";
+import { getHomeContent } from "@/sanity/content.ts";
+
+/* Content from Sanity (or the local files until it is set up) */
+const { seo, stories } = await getHomeContent();
 ---
 
-<Layout theme="dark">
+<Layout theme="dark" {...seo}>
   {/* Hero */}
   <HeroHome />
 
@@ -42,7 +46,7 @@ import CtaGrid from "@/components/section/CtaGrid.astro";
   <SolutionsStart />
 
   {/* Customer stories */}
-  <CustomerStories />
+  <CustomerStories stories={stories} />
 
   {/* Closing call to action */}
   <CtaGrid />
