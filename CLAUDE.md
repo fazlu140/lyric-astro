@@ -169,6 +169,10 @@ Figma section `5405:10880`, frame `5405:13684`. Copy, SEO and media from the liv
 
 Titles that already contain " | " are used as is by `BaseHead` (so this page keeps live's "| Lyric Studio").
 
+## Not for search engines
+
+This is a practice rebuild of a client's site (their design is their IP), so **nothing may be indexed**. `ALLOW_INDEXING = false` in `src/utils/seo.ts` makes every page noindex (no page prop or CMS field can override it), `robots.txt` disallows all crawlers, the sitemap is empty, and `vercel.json` adds `X-Robots-Tag: noindex` to every response. On top of that, Vercel Deployment Protection (Vercel Authentication, All Deployments) should be on so only invited people can open it. Never flip `ALLOW_INDEXING` without Fazlu saying so.
+
 ## CMS (Sanity)
 
 Content that editors change lives in Sanity; layout, animation and the rest of the copy stay in code. Studio is embedded in the site at **/studio** (`@sanity/astro` + `@astrojs/react`; React loads only on that route; hash routing because the site is static). Project ID and dataset come from `.env` (`PUBLIC_SANITY_PROJECT_ID`, `PUBLIC_SANITY_DATASET`, see `.env.example`); both are public. **Without a project ID the site builds from the local data files and there is no /studio**, so nothing breaks before the project exists or on a Vercel build without the variables.
@@ -188,6 +192,7 @@ Content that editors change lives in Sanity; layout, animation and the rest of t
 - Lists are documents, pages pick and order them with **references** (one FAQ can sit on several pages). One-off page content goes in the page's **singleton** (fixed ID, no create or delete in the Studio).
 - Static site: content is read at build time. Publishing needs a rebuild: a Sanity webhook calls a Vercel deploy hook.
 - Story images come from Sanity's CDN (`cdn.sanity.io`, in `image.domains`) once imported; the seed import copies them from the Webflow CDN.
+- Two ways in: the embedded Studio at `/studio` on the site, and the hosted Studio from `npx sanity deploy` (`<name>.sanity.studio`, listed under Studios in sanity.io/manage). The hosted one only sees `SANITY_STUDIO_` variables, so `sanity.cli.ts` copies the `PUBLIC_` pair across.
 - Next steps, in order: move more sections into the model one at a time; customer story pages (`/customer-stories/[slug].astro` with `getStaticPaths`); Visual Editing (needs server rendering on Vercel, `@astrojs/vercel`, the Presentation tool and a read token).
 
 ## Animation and performance

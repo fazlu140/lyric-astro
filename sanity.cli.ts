@@ -11,6 +11,10 @@ try {
   /* No .env yet: the variables may come from the shell instead */
 }
 
+/* The hosted Studio build only sees SANITY_STUDIO_ variables */
+process.env.SANITY_STUDIO_PROJECT_ID ??= process.env.PUBLIC_SANITY_PROJECT_ID;
+process.env.SANITY_STUDIO_DATASET ??= process.env.PUBLIC_SANITY_DATASET ?? "production";
+
 export default defineCliConfig({
   api: {
     projectId: process.env.PUBLIC_SANITY_PROJECT_ID,

@@ -8,8 +8,13 @@ const env = (import.meta as ImportMeta & { env?: Record<string, string | undefin
 const read = (key: string) =>
   env[key] ?? (typeof process !== "undefined" ? process.env[key] : undefined);
 
-export const projectId = read("PUBLIC_SANITY_PROJECT_ID") ?? "";
-export const dataset = read("PUBLIC_SANITY_DATASET") ?? "production";
+/* PUBLIC_ in the Astro site; SANITY_STUDIO_ in the hosted Studio
+   (`npx sanity deploy`), which only exposes that prefix. sanity.cli.ts
+   copies one to the other, so .env needs only the PUBLIC_ pair. */
+export const projectId =
+  read("PUBLIC_SANITY_PROJECT_ID") ?? read("SANITY_STUDIO_PROJECT_ID") ?? "";
+export const dataset =
+  read("PUBLIC_SANITY_DATASET") ?? read("SANITY_STUDIO_DATASET") ?? "production";
 
 /** The API date the queries are written against. Bump on purpose, not by habit. */
 export const apiVersion = "2026-10-01";
