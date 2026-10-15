@@ -19,8 +19,8 @@ const visualEditing = Boolean(projectId) && env.SANITY_VISUAL_EDITING === "true"
 
 /* @sanity/astro points `sanity` and `styled-components` at their folders,
    but on Windows its path cleanup misses the backslashes and points them at
-   package.json instead ("css is not exported by …/package.json"). These
-   aliases come first and point at the real folders on every OS. */
+   package.json instead ("css is not exported by …/package.json"). This
+   plugin corrects those aliases after @sanity/astro adds them. */
 const require = createRequire(import.meta.url);
 const folderOf = (name) => {
   try {
@@ -29,10 +29,23 @@ const folderOf = (name) => {
     return undefined;
   }
 };
-const sanityAliases = ["sanity", "styled-components"]
-  .map((name) => ({ name, path: folderOf(name) }))
-  .filter(({ path }) => path)
-  .map(({ name, path }) => ({ find: new RegExp(`^${name}$`), replacement: path }));
+const fixSanityAliases = () => ({
+  name: "lyric:fix-sanity-aliases",
+  /* Runs after @sanity/astro has added its aliases: rewrite any that point
+     at a package.json to the package's folder */
+  enforce: "post",
+  config(config) {
+    const alias = config.resolve?.alias;
+    if (!Array.isArray(alias)) return;
+    for (const entry of alias) {
+      for (const name of ["sanity", "styled-components"]) {
+        if (String(entry.find) === String(new RegExp(`^${name}$`)) && /package\.json$/.test(entry.replacement)) {
+          entry.replacement = folderOf(name) ?? entry.replacement;
+        }
+      }
+    }
+  },
+});
 
 /* Sanity, with the Studio at /studio, once a project ID is set. Until then
    the site builds from the local data files and there is no /studio. */
@@ -110,7 +123,7 @@ export default defineConfig({
   ],
   vite: {
     build: { cssTarget: "safari15.4" },
-    ...(projectId ? { resolve: { alias: sanityAliases } } : {}),
+    ...(projectId ? { plugins: [fixSanityAliases()] } : {}),
     /* The Visual Editing overlay pulls in CommonJS packages (lodash); dev
        must pre-bundle them or the browser can't import them */
     ...(visualEditing ? { optimizeDeps: { include: ["@sanity/visual-editing/react"] } } : {}),
