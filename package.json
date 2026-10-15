@@ -47,5 +47,8 @@
     "version": "0.0.5",
     "commit": "0e32ded964de80d62636346c2e0e3fb3a701beda",
     "scaffolded": "2026-10-12"
+  },
+  "overrides": {
+    "@sanity/visual-editing": "^6.1.3"
   }
 }

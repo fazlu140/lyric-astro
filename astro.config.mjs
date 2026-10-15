@@ -89,5 +89,10 @@ export default defineConfig({
       },
     },
   ],
-  vite: { build: { cssTarget: "safari15.4" } },
+  vite: {
+    build: { cssTarget: "safari15.4" },
+    /* The Visual Editing overlay pulls in CommonJS packages (lodash); dev
+       must pre-bundle them or the browser can't import them */
+    ...(visualEditing ? { optimizeDeps: { include: ["@sanity/visual-editing/react"] } } : {}),
+  },
 });
