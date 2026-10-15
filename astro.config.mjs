@@ -5,6 +5,8 @@ import sanity from "@sanity/astro";
 import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import { loadEnv } from "vite";
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
 import { SITE_URL } from "./src/consts.ts";
 import { isNoindexRoute } from "./src/utils/seo.ts";
 
@@ -14,6 +16,23 @@ const projectId = env.PUBLIC_SANITY_PROJECT_ID;
 /* Preview build for the Studio's Presentation tool: rendered per request
    with drafts. Production builds leave this off and stay static. */
 const visualEditing = Boolean(projectId) && env.SANITY_VISUAL_EDITING === "true";
+
+/* @sanity/astro points `sanity` and `styled-components` at their folders,
+   but on Windows its path cleanup misses the backslashes and points them at
+   package.json instead ("css is not exported by …/package.json"). These
+   aliases come first and point at the real folders on every OS. */
+const require = createRequire(import.meta.url);
+const folderOf = (name) => {
+  try {
+    return dirname(require.resolve(`${name}/package.json`));
+  } catch {
+    return undefined;
+  }
+};
+const sanityAliases = ["sanity", "styled-components"]
+  .map((name) => ({ name, path: folderOf(name) }))
+  .filter(({ path }) => path)
+  .map(({ name, path }) => ({ find: new RegExp(`^${name}$`), replacement: path }));
 
 /* Sanity, with the Studio at /studio, once a project ID is set. Until then
    the site builds from the local data files and there is no /studio. */
@@ -91,6 +110,7 @@ export default defineConfig({
   ],
   vite: {
     build: { cssTarget: "safari15.4" },
+    ...(projectId ? { resolve: { alias: sanityAliases } } : {}),
     /* The Visual Editing overlay pulls in CommonJS packages (lodash); dev
        must pre-bundle them or the browser can't import them */
     ...(visualEditing ? { optimizeDeps: { include: ["@sanity/visual-editing/react"] } } : {}),
