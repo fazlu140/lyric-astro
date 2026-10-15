@@ -1,0 +1,403 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Img from "@/components/media/Img.astro";
+import { pickAsset } from "@/utils/assets.ts";
+import { uid } from "@/utils/unique-id.ts";
+import { agents } from "@/data/platform.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/platform/agents/*.{png,jpg,webp,avif}",
+  { eager: true },
+);
+
+const id = uid("agents");
+const tabs = agents.map((agent) => ({ ...agent, src: pickAsset(images, agent.image) }));
+---
+
+{
+  render && (
+    <Section
+      theme="light"
+      borders="frame"
+      class="agents_wrap"
+      containerClass="agents_layout"
+      data-agents
+    >
+      <div class="agents_intro">
+        <Heading class="agents_title" reveal="lines">
+          Agents at Every Layer
+        </Heading>
+        <Paragraph class="agents_text" reveal="lines" revealDelay={0.1}>
+          Every action an agent takes is grounded in the semantic architecture,
+          traceable and auditable. The train tracks stay visible even when an
+          agent is the one laying them down.
+        </Paragraph>
+      </div>
+
+      <div class="agents_tabs theme-dark" data-animate="fade-up">
+        <div class="agents_list" role="tablist" aria-label="Agents">
+          {tabs.map((tab, i) => (
+            <button
+              class="agents_tab"
+              type="button"
+              role="tab"
+              id={`${id}-tab-${i}`}
+              aria-controls={`${id}-panel-${i}`}
+              aria-selected={i === 0 ? "true" : "false"}
+              tabindex={i === 0 ? 0 : -1}
+            >
+              {tab.tab}
+            </button>
+          ))}
+        </div>
+
+        <div class="agents_panels">
+          {tabs.map((tab, i) => (
+            <div
+              class:list={["agents_panel", i === 0 && "is-active"]}
+              role="tabpanel"
+              id={`${id}-panel-${i}`}
+              aria-labelledby={`${id}-tab-${i}`}
+              tabindex="0"
+            >
+              <div class="agents_copy">
+                <p class="agents_eyebrow">{tab.eyebrow}</p>
+                <Heading tag="h3" variant="h3" class="agents_panel-title">
+                  {tab.title}
+                </Heading>
+                <Paragraph class="agents_panel-text">{tab.text}</Paragraph>
+                {tab.bullets.length > 0 && (
+                  <ul class="agents_bullets">
+                    {tab.bullets.map((bullet) => (
+                      <li>{bullet}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div class="agents_visual">
+                <Img
+                  class="agents_poster"
+                  src={tab.src}
+                  alt=""
+                  width={672}
+                  loading="lazy"
+                />
+                <video
+                  class="agents_video"
+                  data-src={tab.video}
+                  muted
+                  playsinline
+                  preload="none"
+                  aria-hidden="true"
+                  tabindex="-1"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  )
+}
+
+<script>
+  import { whenNear } from "@/utils/near.ts";
+
+  const quiet =
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+    (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+      ?.saveData === true;
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-agents]")) whenNear(root, () => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>(".agents_tab")];
+    const panels = [...root.querySelectorAll<HTMLElement>(".agents_panel")];
+    const list = root.querySelector<HTMLElement>(".agents_list")!;
+    const box = root.querySelector<HTMLElement>(".agents_tabs")!;
+    let current = 0;
+    let inView = false;
+    let touched = false;
+    let advance = 0;
+
+    /* Only the active panel's video ever loads, and it plays once */
+    const play = () => {
+      window.clearTimeout(advance);
+      panels.forEach((panel, i) => {
+        const video = panel.querySelector<HTMLVideoElement>("video")!;
+        if (i !== current || !inView || quiet) {
+          video.pause();
+          return;
+        }
+        if (!video.src && video.dataset.src) {
+          video.src = video.dataset.src;
+          video.addEventListener("playing", () => video.classList.add("is-playing"), {
+            once: true,
+          });
+          /* When it ends, move on to the next tab, until someone picks one */
+          video.addEventListener("ended", () => {
+            if (touched || !inView) return;
+            advance = window.setTimeout(() => select((current + 1) % tabs.length, false), 1500);
+          });
+        }
+        video.currentTime = 0;
+        video.play().catch(() => {});
+      });
+    };
+
+    const select = (index: number, focus: boolean) => {
+      current = index;
+      tabs.forEach((tab, i) => {
+        const on = i === index;
+        tab.setAttribute("aria-selected", String(on));
+        tab.tabIndex = on ? 0 : -1;
+      });
+      panels.forEach((panel, i) => panel.classList.toggle("is-active", i === index));
+      /* Keep the chosen tab in view in the scrolling tab row on phones */
+      const tab = tabs[index];
+      list.scrollTo({
+        left: tab.offsetLeft - (list.clientWidth - tab.offsetWidth) / 2,
+        behavior: "smooth",
+      });
+      if (focus) tab.focus();
+      play();
+    };
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => {
+        touched = true;
+        select(i, false);
+      });
+    });
+
+    /* Arrow keys, Home and End move between tabs (ARIA tabs pattern) */
+    list.addEventListener("keydown", (event) => {
+      const keys: Record<string, number> = {
+        ArrowRight: current + 1,
+        ArrowLeft: current - 1,
+        Home: 0,
+        End: tabs.length - 1,
+      };
+      if (!(event.key in keys)) return;
+      event.preventDefault();
+      touched = true;
+      select((keys[event.key] + tabs.length) % tabs.length, true);
+    });
+
+    new IntersectionObserver(
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        play();
+      },
+      { threshold: 0.4 },
+    ).observe(box);
+  });
+</script>
+
+<style is:global>
+  @layer components {
+    .agents_layout {
+      align-items: center;
+      gap: var(--space-7);
+    }
+
+    .agents_intro {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+      max-width: 51rem;
+      text-align: center;
+    }
+
+    .agents_title,
+    .agents_text {
+      margin: 0;
+    }
+
+    .agents_text {
+      color: var(--text-2);
+    }
+
+    /* The dark box: the tab bar over the two-column panel */
+    .agents_tabs {
+      width: 100%;
+      background-color: #232323;
+    }
+
+    .agents_list {
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      background-color: #3a3a3a;
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    .agents_tab {
+      flex: 1 0 auto;
+      padding: var(--space-3) var(--space-4);
+      color: var(--grey-80);
+      font-size: var(--text-main);
+      white-space: nowrap;
+      text-align: center;
+      cursor: pointer;
+      transition:
+        background-color var(--motion-base) var(--motion-ease-out),
+        color var(--motion-base) var(--motion-ease-out);
+      &[aria-selected="true"] {
+        background-color: #232323;
+        color: var(--white);
+      }
+      @media (hover: hover) {
+        &:hover:not([aria-selected="true"]) {
+          background-color: #2e2e2e;
+        }
+      }
+      &:focus-visible {
+        outline: 1px solid var(--plum-200);
+        outline-offset: -1px;
+      }
+    }
+
+    /* Every panel shares one grid cell, so the box keeps the tallest
+       panel's height and nothing jumps when switching */
+    .agents_panels {
+      display: grid;
+    }
+
+    .agents_panel {
+      grid-area: 1 / 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity var(--motion-slow) var(--motion-ease-out),
+        visibility 0s var(--motion-slow);
+      &.is-active {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity var(--motion-slow) var(--motion-ease-out);
+      }
+      &:focus-visible {
+        outline: 1px solid var(--plum-200);
+        outline-offset: -1px;
+      }
+    }
+
+    .agents_copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: start;
+      gap: var(--space-3);
+      padding: var(--space-6) var(--space-5);
+      background-color: #232323;
+      translate: 0 0.75rem;
+      transition: translate 0.7s var(--motion-ease-out);
+    }
+
+    .agents_panel.is-active .agents_copy {
+      translate: 0 0;
+    }
+
+    .agents_eyebrow {
+      margin: 0;
+      /* Figma's plum-200, lifted a little to pass AA on the dark panel */
+      color: color-mix(in lab, var(--plum-200) 70%, var(--white));
+      font-family: var(--secondary-family);
+      font-size: var(--text-small);
+    }
+
+    .agents_panel-title,
+    .agents_panel-text {
+      margin: 0;
+    }
+
+    .agents_panel-title {
+      margin-block: var(--space-1);
+    }
+
+    .agents_panel-text {
+      max-width: 25.5rem;
+      color: var(--text-2);
+    }
+
+    .agents_bullets {
+      display: grid;
+      grid-template-columns: repeat(2, auto);
+      justify-content: start;
+      gap: var(--space-3) var(--space-5);
+      margin: var(--space-3) 0 0;
+      padding: 0;
+      list-style: none;
+      font-family: var(--secondary-family);
+      font-size: var(--text-small);
+      & li {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        &::before {
+          content: "";
+          flex: none;
+          width: 0.5625rem;
+          height: 0.5625rem;
+          background-color: var(--plum-400);
+        }
+      }
+    }
+
+    .agents_visual {
+      position: relative;
+      display: grid;
+      background-color: var(--grey-900);
+      border-top: var(--border-width) solid #393939;
+    }
+
+    .agents_poster,
+    .agents_video {
+      grid-area: 1 / 1;
+      display: block;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 672 / 542;
+      object-fit: cover;
+    }
+
+    .agents_video {
+      opacity: 0;
+      transition: opacity var(--motion-slow) var(--motion-ease-out);
+      &.is-playing {
+        opacity: 1;
+      }
+    }
+
+    @media (width >= 62rem) {
+      .agents_tab {
+        flex: 1 1 0;
+      }
+
+      .agents_panel {
+        grid-template-columns: 519fr 673fr;
+      }
+
+      .agents_copy {
+        padding: var(--space-7);
+      }
+
+      .agents_visual {
+        border-top: 0;
+        border-left: var(--border-width) solid #393939;
+      }
+    }
+  }
+</style>

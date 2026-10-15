@@ -1,0 +1,151 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import { uid } from "@/utils/unique-id.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Color theme. */
+  theme?: "light" | "dark";
+  /** Section heading. */
+  title?: string;
+  /** Questions and answers. Answers are HTML. */
+  items: { q: string; a: string }[];
+  /** Add FAQPage structured data for search engines. */
+  schema?: boolean;
+};
+
+const { render = true, theme = "dark", title = "Frequently asked questions", items, schema = true } = Astro.props;
+
+/* Native <details> with a shared name: one open at a time, no JavaScript,
+   and the browser's find-in-page opens the matching answer */
+const group = uid("faq");
+
+const strip = (html: string) => html.replace(/<li>/g, " ").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: items.map(({ q, a }) => ({
+    "@type": "Question",
+    name: q,
+    acceptedAnswer: { "@type": "Answer", text: strip(a) },
+  })),
+};
+---
+
+<Section render={render} theme={theme} borders="frame" class="faq_wrap" containerClass="faq_layout">
+  <Heading class="faq_title" reveal="lines">{title}</Heading>
+  <div class="faq_list" data-animate="fade-up">
+    {items.map(({ q, a }, i) => (
+      <details class="faq_item" name={group} open={i === 0}>
+        <summary class="faq_toggle">
+          <Heading tag="h3" variant="h5" class="faq_question">{q}</Heading>
+          <svg class="faq_icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4.5v15M19.5 12h-15" />
+          </svg>
+        </summary>
+        <div class="faq_answer" set:html={a} />
+      </details>
+    ))}
+  </div>
+  {schema && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+</Section>
+
+<style is:global>
+  @layer components {
+    .faq_layout {
+      align-items: center;
+      gap: var(--space-7);
+    }
+
+    .faq_title {
+      margin: 0;
+      text-align: center;
+    }
+
+    .faq_list {
+      width: 100%;
+      max-width: 47.5rem;
+    }
+
+    .faq_item {
+      interpolate-size: allow-keywords;
+      border-bottom: var(--border-width) solid transparent;
+      transition: border-color var(--motion-base) var(--motion-ease-out);
+      @media (hover: hover) {
+        &:hover {
+          border-bottom-color: var(--border);
+        }
+      }
+    }
+
+    /* The answer's height animates where the browser supports it */
+    .faq_item::details-content {
+      block-size: 0;
+      overflow: clip;
+      transition:
+        block-size var(--motion-base) var(--motion-ease-out),
+        content-visibility var(--motion-base) allow-discrete;
+    }
+
+    .faq_item[open]::details-content {
+      block-size: auto;
+    }
+
+    .faq_toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-5);
+      padding-block: var(--space-4);
+      list-style: none;
+      cursor: pointer;
+      &::-webkit-details-marker {
+        display: none;
+      }
+      &:focus-visible {
+        outline: 1px solid var(--plum-200);
+        outline-offset: 4px;
+      }
+    }
+
+    .faq_question {
+      margin: 0;
+    }
+
+    /* Plus turns into a cross, as in Figma */
+    .faq_icon {
+      flex: none;
+      width: 1.5rem;
+      height: 1.5rem;
+      fill: none;
+      stroke: currentcolor;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      transition: rotate var(--motion-base) var(--motion-ease-out);
+    }
+
+    .faq_item[open] .faq_icon {
+      rotate: 45deg;
+    }
+
+    .faq_answer {
+      max-width: 43rem;
+      padding-bottom: var(--space-4);
+      color: var(--text-2);
+      & > * {
+        margin: 0 0 var(--space-3);
+      }
+      & > :last-child {
+        margin-bottom: 0;
+      }
+      & ol {
+        padding-left: 1.25em;
+      }
+      & li + li {
+        margin-top: var(--space-2);
+      }
+    }
+  }
+</style>

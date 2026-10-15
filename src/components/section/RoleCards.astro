@@ -1,0 +1,142 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Button from "@/components/Button.astro";
+import Creator from "@/assets/images/platform/roles/creator.svg";
+import Consumer from "@/assets/images/platform/roles/consumer.svg";
+import DataScience from "@/assets/images/platform/roles/data-science.svg";
+import { roles } from "@/data/platform.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+const icons = { creator: Creator, consumer: Consumer, "data-science": DataScience };
+---
+
+{
+  render && (
+    <Section
+      theme="dark"
+      borders="frame"
+      class="roles_wrap"
+      containerClass="roles_layout"
+    >
+      <Heading class="roles_title" reveal="lines">
+        Built for the Reality of Your Role.
+      </Heading>
+
+      <ul class="roles_list" data-animate="fade-up" data-animate-children>
+        {roles.map((role) => {
+          const Icon = icons[role.icon as keyof typeof icons];
+          return (
+            <li class="roles_card">
+              <div class="roles_icon" aria-hidden="true">
+                <Icon />
+              </div>
+              <Heading tag="h3" variant="h4" class="roles_card-title">
+                {role.title}
+              </Heading>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div data-animate="fade-up">
+        <Button element="link" href="/solutions">Explore Solutions</Button>
+      </div>
+    </Section>
+  )
+}
+
+<style is:global>
+  @layer components {
+    .roles_layout {
+      align-items: center;
+      gap: var(--space-7);
+    }
+
+    .roles_title {
+      margin: 0;
+      text-align: center;
+    }
+
+    .roles_list {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-4);
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    /* Hover: the card lifts to grey-900 (Figma's hover state), the drawing
+       rises a little and its dashed guides start to run */
+    .roles_card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: var(--space-6);
+      min-height: 22rem;
+      padding: var(--space-6) var(--space-4) var(--space-5);
+      border: var(--border-width) solid var(--border);
+      transition: background-color var(--motion-base) var(--motion-ease-out);
+    }
+
+    .roles_icon {
+      display: grid;
+      place-items: center;
+      & svg {
+        width: min(100%, 11.875rem);
+        height: auto;
+        transition: translate var(--motion-slow) var(--motion-ease-out);
+      }
+    }
+
+    .roles_card-title {
+      max-width: 17em;
+      margin: 0;
+      font-size: var(--h4);
+      line-height: 1.55;
+    }
+
+    @media (hover: hover) {
+      .roles_card:hover {
+        background-color: var(--grey-900);
+        & svg {
+          translate: 0 -0.5rem;
+        }
+        & [stroke-dasharray] {
+          animation: roles-dash 0.9s linear infinite;
+        }
+      }
+    }
+
+    @keyframes roles-dash {
+      to {
+        stroke-dashoffset: -14;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .roles_card [stroke-dasharray] {
+        animation: none !important;
+      }
+    }
+
+    @media (width >= 48rem) {
+      .roles_list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--space-3);
+      }
+
+      .roles_card {
+        min-height: 28.5rem;
+      }
+    }
+  }
+</style>

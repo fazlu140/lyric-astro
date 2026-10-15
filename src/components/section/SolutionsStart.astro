@@ -1,0 +1,178 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Button from "@/components/Button.astro";
+import Img from "@/components/media/Img.astro";
+import { pickAsset } from "@/utils/assets.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/home/*.{png,jpg,webp,avif}",
+  { eager: true },
+);
+const graphic = pickAsset(images, "solutions-graphic");
+---
+
+<Section
+  render={render}
+  theme="dark"
+  borders="frame"
+  paddingTop="none"
+  paddingBottom="none"
+  class="start_wrap"
+  containerClass="start_layout"
+>
+  <div class="start_copy">
+    <div class="start_intro">
+      <Heading class="start_title" reveal="lines">
+        Start anywhere.
+        <br />
+        Go everywhere.
+      </Heading>
+      <div data-animate="fade-up" data-animate-delay="0.2">
+        <Button element="link" href="/solutions">Explore solutions</Button>
+      </div>
+    </div>
+    <Paragraph class="start_text" reveal="lines">
+      Start where your most urgent decisions live. Every decision block you
+      activate becomes part of a larger mesh that compounds in value as
+      connections form across functions and horizons.
+    </Paragraph>
+  </div>
+
+  <div class="start_visual" data-start>
+    <Img
+      class="start_image"
+      src={graphic}
+      alt=""
+      width={670}
+      height={550}
+      variant="constrained"
+      sizes="(width >= 48rem) 50vw, 100vw"
+      loading="lazy"
+    />
+    {/* The active block: a soft glow that breathes over the render */}
+    <span class="start_glow" aria-hidden="true"></span>
+  </div>
+</Section>
+
+<script>
+  import { whenNear } from "@/utils/near.ts";
+  import { gsap, reducedMotion } from "@/utils/gsap.ts";
+
+  if (!reducedMotion()) {
+    for (const visual of document.querySelectorAll<HTMLElement>("[data-start]")) whenNear(visual, () => {
+      /* The render drifts slower than the page: depth without a pin. */
+      gsap.fromTo(
+        visual.querySelectorAll(".start_image, .start_glow"),
+        { yPercent: -6 },
+        {
+          yPercent: 6,
+          ease: "none",
+          scrollTrigger: { trigger: visual, start: "top bottom", end: "bottom top", scrub: true },
+        },
+      );
+    });
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    .section-border-sides > .start_layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: stretch;
+      gap: 0;
+      padding-inline: 0;
+    }
+
+    .start_copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: var(--space-7);
+      padding: var(--section-space-small) var(--content-inset);
+    }
+
+    .start_intro {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-6);
+    }
+
+    .start_title,
+    .start_text {
+      margin: 0;
+    }
+
+    .start_text {
+      max-width: 30.375rem;
+      color: var(--text-2);
+      font-weight: var(--primary-medium);
+    }
+
+    .start_visual {
+      position: relative;
+      aspect-ratio: 670 / 550;
+      overflow: clip;
+    }
+
+    .start_image,
+    .start_glow {
+      position: absolute;
+      inset: -7% 0;
+      width: 100%;
+      height: 114%;
+    }
+
+    .start_image {
+      object-fit: cover;
+    }
+
+    /* Sits on the purple block (61 to 76% across, 24 to 77% down) */
+    .start_glow {
+      background-image: radial-gradient(
+        16% 30% at 65% 52%,
+        rgb(143 117 157 / 0.55),
+        rgb(115 83 133 / 0.18) 55%,
+        transparent 100%
+      );
+      mix-blend-mode: screen;
+      opacity: 0.35;
+      animation: start-glow 4.8s var(--motion-ease-in-out) infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes start-glow {
+      to {
+        opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .start_glow {
+        animation: none;
+        opacity: 0.6;
+      }
+    }
+
+    @media (width >= 48rem) {
+      .section-border-sides > .start_layout {
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      }
+
+      .start_visual {
+        aspect-ratio: auto;
+        min-height: 34.5rem;
+      }
+    }
+  }
+</style>

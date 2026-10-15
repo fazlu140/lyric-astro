@@ -1,0 +1,87 @@
+---
+import GridFrame from "@/components/wrapper/GridFrame.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Button from "@/components/Button.astro";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Button destination. */
+  href?: string;
+  /** Button text. */
+  buttonText?: string;
+};
+
+const { render = true, href = "/demo", buttonText = "Book a demo" } = Astro.props;
+
+/* Lit cells and connectors on the 20 by 8 desktop grid, from Figma
+   (column, row, counted from 0). */
+const lit: [number, number][] = [
+  [2, 1],
+  [17, 1],
+  [1, 3],
+  [18, 3],
+  [3, 5],
+  [16, 5],
+];
+---
+
+<GridFrame render={render} theme="dark" rows={8} card={[5, 1, 10, 6]} lit={lit} cardClass="cta_card">
+  <Fragment slot="layer">
+    <svg class="grid-frame_links" viewBox="0 0 20 8">
+      <path pathLength="1" d="M2 1.5H1.5V3" />
+      <path pathLength="1" d="M18.5 4V5.5H17" />
+    </svg>
+    <span class="grid-frame_dot" style="--_x: 2; --_y: 1.5"></span>
+    <span class="grid-frame_dot" style="--_x: 1.5; --_y: 3"></span>
+    <span class="grid-frame_dot" style="--_x: 18.5; --_y: 4"></span>
+    <span class="grid-frame_dot" style="--_x: 17; --_y: 5.5"></span>
+  </Fragment>
+
+  <Heading class="cta_title" reveal="lines">
+    Deliver Better
+    <br />
+    Decisions Faster
+  </Heading>
+  <Paragraph class="cta_text" reveal="lines" revealDelay={0.15}>
+    Supply chains run on thousands of interconnected decisions. Demand shapes
+    production. Inventory affects transportation. Every choice influences
+    another. Every decision matters.
+  </Paragraph>
+  <div data-animate="fade-up" data-animate-delay="0.3">
+    <Button element="link" href={href}>{buttonText}</Button>
+  </div>
+</GridFrame>
+
+<style is:global>
+  @layer components {
+    .cta_title,
+    .cta_text {
+      margin: 0;
+    }
+
+    .cta_title {
+      font-size: var(--h2);
+    }
+
+    .cta_text {
+      max-width: 30.5rem;
+      margin-bottom: var(--space-3);
+      color: var(--text-2);
+      font-weight: var(--primary-medium);
+    }
+
+    /* Between 62 and 80rem the card is small: the copy steps down a size */
+    @media (62rem <= width < 80rem) {
+      .cta_card .cta_title {
+        font-size: var(--h3);
+      }
+
+      .cta_card .cta_text {
+        margin-bottom: 0;
+        font-size: var(--text-small);
+      }
+    }
+  }
+</style>

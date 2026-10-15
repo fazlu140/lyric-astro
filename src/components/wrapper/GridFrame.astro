@@ -1,0 +1,437 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+
+type Cell = [number, number];
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Color theme. */
+  theme?: "light" | "dark";
+  /** Section borders, passed to `Section`. */
+  borders?: "none" | "sides" | "frame";
+  /**
+   * Desktop columns (from 62rem). Phones use 8, tablets 12.
+   *
+   * @min 1
+   * @int
+   */
+  cols?: number;
+  /**
+   * Desktop rows. Cells are square, so this sets the height.
+   *
+   * @min 1
+   * @int
+   */
+  rows?: number;
+  /** Desktop card area in cells: column, row, width, height (counted from 0). */
+  card?: [number, number, number, number];
+  /** Desktop cells that are lit at rest: column, row. */
+  lit?: Cell[];
+  /** Plus mark color on the card's corners. */
+  plus?: "default" | "plum";
+  /**
+   * Empty cells above and below the card on phones and tablets.
+   *
+   * @min 0
+   */
+  pad?: number;
+  /** Light the cell under the mouse and, now and then, a random one. */
+  interactive?: boolean;
+  /** Section id, for in-page links. */
+  id?: string;
+  /** Section classes. */
+  class?: string;
+  /** Card classes. */
+  cardClass?: string;
+};
+
+const {
+  render = true,
+  theme = "dark",
+  borders = "frame",
+  cols = 20,
+  rows = 8,
+  card = [5, 1, 10, 6],
+  lit = [],
+  plus = "default",
+  pad = 1,
+  interactive = true,
+  id,
+  class: className,
+  cardClass,
+} = Astro.props;
+
+const [cardCol, cardRow, cardWidth, cardHeight] = card;
+const vars = [
+  `--_dcols: ${cols}`,
+  `--_drows: ${rows}`,
+  `--_card-c: ${cardCol}`,
+  `--_card-r: ${cardRow}`,
+  `--_card-w: ${cardWidth}`,
+  `--_card-h: ${cardHeight}`,
+  `--_pad: ${pad}`,
+].join("; ");
+---
+
+<Section
+  render={render}
+  theme={theme}
+  borders={borders}
+  paddingTop="none"
+  paddingBottom="none"
+  id={id}
+  class:list={["grid-frame_wrap", className]}
+  containerClass="grid-frame_layout"
+>
+  <div
+    class:list={["grid-frame", plus === "plum" && "is-plus-plum"]}
+    style={vars}
+    data-grid-frame
+    data-interactive={interactive ? "" : undefined}
+  >
+    <div class="grid-frame_cells" aria-hidden="true">
+      {lit.map(([c, r], i) => (
+        <span class="grid-frame_cell is-static" style={`--_c: ${c}; --_r: ${r}; --_i: ${i}`} />
+      ))}
+      <slot name="layer" />
+    </div>
+
+    <div class:list={["grid-frame_card", cardClass]} data-grid-cover>
+      {["tl", "tr", "bl", "br"].map((corner) => (
+        <svg class:list={["grid-frame_plus", `is-${corner}`]} viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M10 0v20M20 10H0" />
+        </svg>
+      ))}
+      <div class="grid-frame_card-inner">
+        <slot />
+      </div>
+    </div>
+
+    <slot name="aside" />
+  </div>
+</Section>
+
+<script>
+  import { whenNear } from "@/utils/near.ts";
+  import { gsap, ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
+
+  const desktop = window.matchMedia("(width >= 62rem)");
+  const frames = [...document.querySelectorAll<HTMLElement>("[data-grid-frame]")];
+
+  /* Columns come from CSS, so they follow the breakpoints */
+  const columns = (grid: HTMLElement) =>
+    parseInt(getComputedStyle(grid).getPropertyValue("--_cols"), 10) || 8;
+
+  /* Below desktop the card sets the height: round it up to whole cells so
+     the grid lines meet its edges. Runs with or without motion. */
+  for (const grid of frames) {
+    const card = grid.querySelector<HTMLElement>(".grid-frame_card")!;
+    const content = grid.querySelector<HTMLElement>(".grid-frame_card-inner")!;
+    const snap = () => {
+      if (desktop.matches) {
+        card.style.minHeight = "";
+        return;
+      }
+      const cell = grid.clientWidth / columns(grid);
+      card.style.minHeight = `${Math.ceil(content.offsetHeight / cell) * cell}px`;
+    };
+    new ResizeObserver(snap).observe(content);
+    desktop.addEventListener("change", snap);
+  }
+
+  for (const grid of frames) whenNear(grid, () => {
+    if (reducedMotion()) return;
+
+    const layer = grid.querySelector<HTMLElement>(".grid-frame_cells")!;
+    const covers = [...grid.querySelectorAll<HTMLElement>("[data-grid-cover]")];
+
+    /* Entrance: lit cells switch on one by one, connectors draw, the plus
+       marks spin in */
+    const intro = gsap.timeline({ paused: true });
+    intro
+      .from(grid.querySelectorAll(".grid-frame_cell.is-static"), {
+        opacity: 0,
+        duration: 0.5,
+        stagger: { each: 0.12, from: "random" },
+      })
+      .fromTo(
+        grid.querySelectorAll(".grid-frame_links path"),
+        { strokeDasharray: 1, strokeDashoffset: 1 },
+        { strokeDashoffset: 0, autoRound: false, duration: 0.8, ease: "power2.inOut", stagger: 0.2 },
+        "-=0.2",
+      )
+      .from(grid.querySelectorAll(".grid-frame_dot"), { scale: 0, duration: 0.3, stagger: 0.1 }, "<")
+      .from(
+        grid.querySelectorAll(".grid-frame_plus"),
+        { scale: 0, rotate: -90, transformOrigin: "50% 50%", duration: 0.5, stagger: 0.08 },
+        0,
+      );
+    ScrollTrigger.create({ trigger: grid, start: "top 75%", once: true, onEnter: () => intro.play() });
+
+    if (!grid.hasAttribute("data-interactive")) return;
+
+    const size = () => {
+      const cols = columns(grid);
+      const cell = grid.clientWidth / cols;
+      return { cell, cols, rows: Math.floor(grid.clientHeight / cell) };
+    };
+
+    /* Cells under the card (or anything marked as a cover) stay dark */
+    const covered = (c: number, r: number, cell: number) => {
+      const origin = grid.getBoundingClientRect();
+      const x = origin.left + (c + 0.5) * cell;
+      const y = origin.top + (r + 0.5) * cell;
+      return covers.some((el) => {
+        const box = el.getBoundingClientRect();
+        return x > box.left && x < box.right && y > box.top && y < box.bottom;
+      });
+    };
+
+    const flash = (c: number, r: number, kind: "pointer" | "ambient") => {
+      const cell = document.createElement("span");
+      cell.className = `grid-frame_cell is-${kind}`;
+      cell.style.cssText = `--_c: ${c}; --_r: ${r}`;
+      cell.addEventListener("animationend", () => cell.remove(), { once: true });
+      layer.append(cell);
+    };
+
+    /* The cell under the mouse lights up and fades behind it */
+    let lastKey = "";
+    grid.addEventListener("pointermove", (event) => {
+      if (event.pointerType !== "mouse") return;
+      const { cell } = size();
+      const box = grid.getBoundingClientRect();
+      const c = Math.floor((event.clientX - box.left) / cell);
+      const r = Math.floor((event.clientY - box.top) / cell);
+      const key = `${c}:${r}`;
+      if (key === lastKey || covered(c, r, cell)) return;
+      lastKey = key;
+      flash(c, r, "pointer");
+    });
+
+    /* Now and then a random cell comes online, only while in view */
+    let ambient = 0;
+    const startAmbient = () => {
+      window.clearInterval(ambient);
+      ambient = window.setInterval(() => {
+        if (document.hidden) return;
+        const { cell, cols, rows } = size();
+        for (let tries = 0; tries < 6; tries++) {
+          const c = Math.floor(Math.random() * cols);
+          const r = Math.floor(Math.random() * rows);
+          if (!covered(c, r, cell)) return flash(c, r, "ambient");
+        }
+      }, 900);
+    };
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) startAmbient();
+      else window.clearInterval(ambient);
+    }).observe(grid);
+  });
+</script>
+
+<style is:global>
+  @layer components {
+    /* The container is the size query root, so 100cqw is the grid's own
+       width, rail to rail */
+    .section-border-sides > .grid-frame_layout,
+    .grid-frame_layout {
+      container-type: inline-size;
+      padding-inline: 0;
+    }
+
+    /* Square cells: 8 across on phones, 12 on tablets, `cols` on desktop.
+       One SVG tile draws each cell's dashed top and left edge. */
+    .grid-frame {
+      --_cols: 8;
+      --_cell: calc(100cqw / var(--_cols));
+      --_line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='66' height='66' viewBox='0 0 66 66' preserveAspectRatio='none'%3E%3Cpath d='M0 .5H66M.5 0V66' stroke='%23393939' stroke-dasharray='4 4' fill='none' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+      --_lit: var(--grey-900);
+      --_hot: var(--grey-800);
+      --_card-bg: var(--grey-900);
+      --_plus: var(--grey-700);
+      position: relative;
+      width: 100%;
+      padding-block: calc(var(--_cell) * var(--_pad));
+      background-image: var(--_line);
+      background-size: var(--_cell) var(--_cell);
+      overflow: clip;
+    }
+
+    .grid-frame_wrap.theme-light .grid-frame {
+      --_line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='66' height='66' viewBox='0 0 66 66' preserveAspectRatio='none'%3E%3Cpath d='M0 .5H66M.5 0V66' stroke='%23e3e3e3' stroke-dasharray='4 4' fill='none' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+      --_lit: var(--grey-10);
+      --_hot: var(--grey-50);
+      --_card-bg: var(--grey-10);
+      --_plus: var(--grey-300);
+    }
+
+    .grid-frame.is-plus-plum {
+      --_plus: var(--plum-400);
+    }
+
+    .grid-frame_cells {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .grid-frame_cell {
+      position: absolute;
+      left: calc(var(--_c) * var(--_cell));
+      top: calc(var(--_r) * var(--_cell));
+      width: var(--_cell);
+      height: var(--_cell);
+      background-color: var(--_lit);
+    }
+
+    .grid-frame_cell.is-pointer {
+      background-color: var(--_hot);
+      animation: grid-frame-cell 0.9s var(--motion-ease-out) forwards;
+    }
+
+    .grid-frame_cell.is-ambient {
+      animation: grid-frame-cell-ambient 2.4s var(--motion-ease-in-out) forwards;
+    }
+
+    @keyframes grid-frame-cell {
+      from {
+        opacity: 0.9;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+
+    @keyframes grid-frame-cell-ambient {
+      0%,
+      100% {
+        opacity: 0;
+      }
+      40% {
+        opacity: 1;
+      }
+    }
+
+    /* Lit cells and connectors belong to the desktop grid */
+    .grid-frame_cell.is-static,
+    .grid-frame_links,
+    .grid-frame_dot {
+      display: none;
+    }
+
+    /* Connectors: an SVG whose viewBox is the grid in cells */
+    .grid-frame_links {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      & path {
+        fill: none;
+        stroke: var(--grey-700);
+        /* One cell is one unit, so this is a 1px line at 1312px wide */
+        stroke-width: 0.016;
+      }
+    }
+
+    .grid-frame_dot {
+      position: absolute;
+      left: calc(var(--_x) * var(--_cell));
+      top: calc(var(--_y) * var(--_cell));
+      width: 0.375rem;
+      height: 0.375rem;
+      margin: -0.1875rem 0 0 -0.1875rem;
+      border-radius: 50%;
+      background-color: var(--grey-600);
+    }
+
+    .grid-frame_card {
+      position: relative;
+      display: grid;
+      align-items: center;
+      /* Phones: inset two thirds of a cell, as on the live site */
+      margin-inline: calc(var(--_cell) * 0.67);
+      background-color: var(--_card-bg);
+    }
+
+    .grid-frame_plus {
+      position: absolute;
+      z-index: 1;
+      width: 1.25rem;
+      height: 1.25rem;
+      margin: -0.625rem;
+      fill: none;
+      stroke: var(--_plus);
+      stroke-width: 1;
+      overflow: visible;
+      pointer-events: none;
+      &.is-tl {
+        top: 0;
+        left: 0;
+      }
+      &.is-tr {
+        top: 0;
+        right: 0;
+      }
+      &.is-bl {
+        bottom: 0;
+        left: 0;
+      }
+      &.is-br {
+        bottom: 0;
+        right: 0;
+      }
+    }
+
+    .grid-frame_card-inner {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-6) var(--space-3);
+      text-align: center;
+    }
+
+    @media (width >= 48rem) {
+      .grid-frame {
+        --_cols: 12;
+      }
+
+      .grid-frame_card {
+        margin-inline: calc(var(--_cell) * 2);
+      }
+    }
+
+    /* Desktop: the card covers its cells exactly */
+    @media (width >= 62rem) {
+      .grid-frame {
+        --_cols: var(--_dcols);
+        aspect-ratio: var(--_dcols) / var(--_drows);
+        padding: 0;
+      }
+
+      .grid-frame_cell.is-static,
+      .grid-frame_links,
+      .grid-frame_dot {
+        display: block;
+      }
+
+      .grid-frame_card {
+        position: absolute;
+        left: calc(var(--_cell) * var(--_card-c));
+        top: calc(var(--_cell) * var(--_card-r));
+        width: calc(var(--_cell) * var(--_card-w));
+        height: calc(var(--_cell) * var(--_card-h));
+        margin: 0;
+      }
+
+      .grid-frame_card-inner {
+        gap: var(--space-3);
+        padding-block: var(--space-4);
+      }
+    }
+  }
+</style>

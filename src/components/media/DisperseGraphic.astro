@@ -1,0 +1,300 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+interface Props extends HTMLAttributes<"div"> {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+  /** Accessible name for the graphic. Omit if decorative. */
+  label?: string;
+}
+
+const { render = true, label, class: className, ...rest } = Astro.props;
+---
+
+{/*
+  Any SVG passed in breaks into small blocks that scatter away from the
+  pointer and spring back. At rest the SVG itself shows (sharp, no canvas
+  work); the canvas only takes over while the blocks are moving.
+*/}
+{
+  render && (
+    <div
+      class:list={["disperse_wrap", className]}
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : "true"}
+      data-disperse
+      {...rest}
+    >
+      <slot />
+      <canvas class="disperse_canvas" aria-hidden="true" />
+    </div>
+  )
+}
+
+<script>
+  import { reducedMotion } from "@/utils/gsap.ts";
+
+  type Block = {
+    bx: number; by: number; x: number; y: number; vx: number; vy: number;
+    size: number; out: boolean; force: number; sin: number; cos: number;
+  };
+
+  /* Spring tuning: soft while the pointer is in, snappy on the way back */
+  const PAD = 80;
+  const MAX_SPEED = 22;
+  const K_ACTIVE = 0.022;
+  const K_REST = 0.075;
+  const DAMP_ACTIVE = 0.88;
+  const DAMP_REST = 0.8;
+
+  const setup = (wrap: HTMLElement) => {
+    const svg = wrap.querySelector("svg");
+    const canvas = wrap.querySelector("canvas");
+    const ctx = canvas?.getContext("2d");
+    if (!svg || !canvas || !ctx) return;
+
+    let blocks: Block[] = [];
+    let art: HTMLCanvasElement | null = null;
+    let width = 0;
+    let height = 0;
+    let radius = 140;
+    let preparing: Promise<void> | null = null;
+    let raf = 0;
+    let inside = false;
+    let strength = 0;
+    const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+
+    /* Rasterises the SVG once per size and splits its filled area into blocks */
+    const prepare = () =>
+      (preparing ??= new Promise<void>((resolve) => {
+        /* Size from the SVG itself, so the blocks sit exactly on its ink */
+        const box = svg.getBoundingClientRect();
+        width = Math.round(box.width);
+        height = Math.round(box.height);
+        if (!width || !height) return resolve();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const cssW = width + PAD * 2;
+        const cssH = height + PAD * 2;
+        canvas.width = Math.round(cssW * dpr);
+        canvas.height = Math.round(cssH * dpr);
+        canvas.style.width = `${cssW}px`;
+        canvas.style.height = `${cssH}px`;
+        canvas.style.left = canvas.style.top = `${-PAD}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        radius = Math.max(70, width * 0.11);
+
+        const clone = svg.cloneNode(true) as SVGElement;
+        clone.setAttribute("width", String(Math.round(width * dpr)));
+        clone.setAttribute("height", String(Math.round(height * dpr)));
+        clone.setAttribute("fill", getComputedStyle(wrap).color);
+        clone.style.color = getComputedStyle(wrap).color;
+        const img = new Image();
+        img.onload = () => {
+          art = document.createElement("canvas");
+          art.width = Math.round(width * dpr);
+          art.height = Math.round(height * dpr);
+          art.getContext("2d")!.drawImage(img, 0, 0, art.width, art.height);
+
+          /* Sample at CSS size to find the blocks that hold any ink */
+          const probe = document.createElement("canvas");
+          probe.width = width;
+          probe.height = height;
+          const pctx = probe.getContext("2d", { willReadFrequently: true })!;
+          pctx.drawImage(img, 0, 0, width, height);
+          const alpha = pctx.getImageData(0, 0, width, height).data;
+          const step = Math.max(8, Math.min(14, Math.round(width / 100)));
+          blocks = [];
+          for (let y = 0; y < height; y += step) {
+            for (let x = 0; x < width; x += step) {
+              let ink = false;
+              for (let py = y; py < Math.min(y + step, height) && !ink; py++) {
+                for (let px = x; px < Math.min(x + step, width); px++) {
+                  if (alpha[(py * width + px) * 4 + 3] > 90) { ink = true; break; }
+                }
+              }
+              if (!ink) continue;
+              const angle = (Math.random() - 0.5) * 0.9;
+              const bx = x + step / 2 + PAD;
+              const by = y + step / 2 + PAD;
+              blocks.push({
+                bx, by, x: bx, y: by, vx: 0, vy: 0, size: step, out: false,
+                force: 0.55 + Math.random() * 1.2, sin: Math.sin(angle), cos: Math.cos(angle),
+              });
+            }
+          }
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+          new XMLSerializer().serializeToString(clone),
+        )}`;
+      }));
+
+    const draw = () => {
+      if (!art) return;
+      ctx.clearRect(0, 0, width + PAD * 2, height + PAD * 2);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(art, PAD, PAD, width, height);
+      /* Punch out the home of every moved block, then draw it where it is */
+      ctx.globalCompositeOperation = "destination-out";
+      for (const b of blocks) {
+        if (b.out) ctx.fillRect(b.bx - b.size / 2 - 1, b.by - b.size / 2 - 1, b.size + 2, b.size + 2);
+      }
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = getComputedStyle(wrap).color;
+      ctx.beginPath();
+      for (const b of blocks) {
+        if (b.out) ctx.rect(Math.round(b.x - b.size / 2), Math.round(b.y - b.size / 2), b.size, b.size);
+      }
+      ctx.fill();
+    };
+
+    const settle = () => {
+      raf = 0;
+      wrap.classList.remove("is-active");
+    };
+
+    const tick = () => {
+      strength += ((inside ? 1 : 0) - strength) * 0.07;
+      if (strength < 0.001) strength = 0;
+      pointer.x += (pointer.tx - pointer.x) * 0.3;
+      pointer.y += (pointer.ty - pointer.y) * 0.3;
+      const k = K_REST + (K_ACTIVE - K_REST) * strength;
+      const damp = DAMP_REST + (DAMP_ACTIVE - DAMP_REST) * strength;
+      const push = strength * strength;
+      const r2 = radius * radius;
+      let moving = false;
+
+      for (const b of blocks) {
+        if (push > 0.01) {
+          const dx = b.x - pointer.x;
+          const dy = b.y - pointer.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < r2) {
+            const d = Math.sqrt(d2) + 0.1;
+            const falloff = 1 - d / radius;
+            const f = falloff * falloff * 9 * b.force * push;
+            const nx = dx / d;
+            const ny = dy / d;
+            b.vx += (nx * b.cos - ny * b.sin) * f;
+            b.vy += (nx * b.sin + ny * b.cos) * f;
+          }
+        }
+        b.vx = (b.vx + (b.bx - b.x) * k) * damp;
+        b.vy = (b.vy + (b.by - b.y) * k) * damp;
+        const v2 = b.vx * b.vx + b.vy * b.vy;
+        if (v2 > MAX_SPEED * MAX_SPEED) {
+          const s = MAX_SPEED / Math.sqrt(v2);
+          b.vx *= s;
+          b.vy *= s;
+        }
+        b.x += b.vx;
+        b.y += b.vy;
+        const off = (b.x - b.bx) ** 2 + (b.y - b.by) ** 2;
+        if (!b.out && off > 0.36) b.out = true;
+        else if (b.out && off < 0.09 && v2 < 0.01) {
+          b.out = false;
+          b.x = b.bx;
+          b.y = b.by;
+          b.vx = b.vy = 0;
+        }
+        if (b.out || v2 > 0.005) moving = true;
+      }
+
+      draw();
+      if (!inside && strength === 0 && !moving) return settle();
+      raf = requestAnimationFrame(tick);
+    };
+
+    const aim = (event: PointerEvent, jump: boolean) => {
+      const box = svg.getBoundingClientRect();
+      pointer.tx = event.clientX - box.left + PAD;
+      pointer.ty = event.clientY - box.top + PAD;
+      if (jump) {
+        pointer.x = pointer.tx;
+        pointer.y = pointer.ty;
+      }
+    };
+
+    const activate = async (event: PointerEvent) => {
+      const first = !inside;
+      inside = true;
+      aim(event, first);
+      await prepare();
+      if (!art || !inside) return;
+      if (!raf) {
+        draw();
+        wrap.classList.add("is-active");
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
+    wrap.addEventListener("pointerenter", (event) => {
+      if (event.pointerType === "mouse") activate(event);
+    });
+    wrap.addEventListener("pointermove", (event) => {
+      if (event.pointerType === "mouse" || inside) activate(event);
+    });
+    /* Touch: a tap or short drag scatters the blocks, scrolling still works */
+    wrap.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "mouse") activate(event);
+    });
+    const leave = () => {
+      inside = false;
+    };
+    wrap.addEventListener("pointerleave", leave);
+    wrap.addEventListener("pointerup", (event) => event.pointerType !== "mouse" && leave());
+    wrap.addEventListener("pointercancel", leave);
+
+    /* Prepare ahead, in idle time, once it is close to the screen */
+    const idle = window.requestIdleCallback ?? ((fn: () => void) => window.setTimeout(fn, 200));
+    new IntersectionObserver(([entry], observer) => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      idle(() => prepare());
+    }, { rootMargin: "300px" }).observe(wrap);
+
+    /* A new width needs new blocks; build them on the next interaction */
+    let lastWidth = wrap.clientWidth;
+    new ResizeObserver(() => {
+      if (Math.abs(wrap.clientWidth - lastWidth) < 1) return;
+      lastWidth = wrap.clientWidth;
+      preparing = null;
+      art = null;
+    }).observe(wrap);
+  };
+
+  if (!reducedMotion()) {
+    document.querySelectorAll<HTMLElement>("[data-disperse]").forEach(setup);
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    .disperse_wrap {
+      position: relative;
+      & > svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+    }
+
+    .disperse_canvas {
+      position: absolute;
+      max-width: none;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .disperse_wrap.is-active {
+      & > svg {
+        visibility: hidden;
+      }
+      & > .disperse_canvas {
+        visibility: visible;
+      }
+    }
+  }
+</style>

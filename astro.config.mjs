@@ -1,12 +1,80 @@
 // @ts-check
 import { defineConfig, fontProviders } from "astro/config";
 import sitemap from "@astrojs/sitemap";
+import sanity from "@sanity/astro";
+import react from "@astrojs/react";
+import vercel from "@astrojs/vercel";
+import { loadEnv } from "vite";
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
 import { SITE_URL } from "./src/consts.ts";
 import { isNoindexRoute } from "./src/utils/seo.ts";
 
+/* .env isn't loaded yet when this file runs, so read it here */
+const env = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
+const projectId = env.PUBLIC_SANITY_PROJECT_ID;
+/* Preview build for the Studio's Presentation tool: rendered per request
+   with drafts. Production builds leave this off and stay static. */
+const visualEditing = Boolean(projectId) && env.SANITY_VISUAL_EDITING === "true";
+
+/* @sanity/astro points `sanity` and `styled-components` at their folders,
+   but on Windows its path cleanup misses the backslashes and points them at
+   package.json instead ("css is not exported by …/package.json"). This
+   plugin corrects those aliases after @sanity/astro adds them. */
+const require = createRequire(import.meta.url);
+const folderOf = (name) => {
+  try {
+    return dirname(require.resolve(`${name}/package.json`));
+  } catch {
+    return undefined;
+  }
+};
+const fixSanityAliases = () => ({
+  name: "lyric:fix-sanity-aliases",
+  /* Runs after @sanity/astro has added its aliases: rewrite any that point
+     at a package.json to the package's folder */
+  enforce: "post",
+  config(config) {
+    const alias = config.resolve?.alias;
+    if (!Array.isArray(alias)) return;
+    for (const entry of alias) {
+      for (const name of ["sanity", "styled-components"]) {
+        if (String(entry.find) === String(new RegExp(`^${name}$`)) && /package\.json$/.test(entry.replacement)) {
+          entry.replacement = folderOf(name) ?? entry.replacement;
+        }
+      }
+    }
+  },
+});
+
+/* Sanity, with the Studio at /studio, once a project ID is set. Until then
+   the site builds from the local data files and there is no /studio. */
+const cms = projectId
+  ? [
+      sanity({
+        projectId,
+        dataset: env.PUBLIC_SANITY_DATASET || "production",
+        /* Static builds read fresh content once per build: skip the CDN cache */
+        useCdn: false,
+        studioBasePath: "/studio",
+      }),
+      /* The Studio is a React app; React only loads on /studio */
+      react(),
+    ]
+  : [];
+
 export default defineConfig({
   site: SITE_URL,
+  output: visualEditing ? "server" : "static",
+  ...(visualEditing ? { adapter: vercel() } : {}),
+  /* Customer story images come from the Webflow CMS until it moves here */
+  /* Remote images Astro may optimise: the Webflow CMS (until it is retired)
+     and Sanity's image CDN */
+  image: {
+    domains: process.env.LYRIC_OFFLINE ? [] : ["cdn.prod.website-files.com", "cdn.sanity.io"],
+  },
   integrations: [
+    ...cms,
     sitemap({
       filter: (page) => !isNoindexRoute(new URL(page).pathname),
     }),
@@ -53,5 +121,11 @@ export default defineConfig({
       },
     },
   ],
-  vite: { build: { cssTarget: "safari15.4" } },
+  vite: {
+    build: { cssTarget: "safari15.4" },
+    ...(projectId ? { plugins: [fixSanityAliases()] } : {}),
+    /* The Visual Editing overlay pulls in CommonJS packages (lodash); dev
+       must pre-bundle them or the browser can't import them */
+    ...(visualEditing ? { optimizeDeps: { include: ["@sanity/visual-editing/react"] } } : {}),
+  },
 });

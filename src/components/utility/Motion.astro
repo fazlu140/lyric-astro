@@ -1,0 +1,136 @@
+---
+/*
+  The site's entrance animations, driven by data attributes so any element
+  can opt in without its own script. Timings and presets live in
+  src/utils/motion.ts.
+
+  data-reveal="lines | words | chars"   split text (set by the `reveal` prop
+                                         on Heading and Paragraph)
+  data-animate="fade-up | fade | …"     animate the element itself
+  data-animate-children                  animate its children one by one instead
+  data-animate-delay="0.2"               seconds before it starts
+
+  Above the fold plays on load; below it plays once on scroll.
+*/
+---
+
+<script is:inline>
+  document.documentElement.classList.add("js");
+</script>
+
+<script>
+  import { gsap, SplitText, reducedMotion } from "@/utils/gsap.ts";
+  import { motion, presets, type MotionPreset } from "@/utils/motion.ts";
+
+  /* The script has loaded: the 2-second safety net (see CSS) is no longer
+     needed, so it can't flash text that is about to animate in. */
+  document.documentElement.classList.add("motion-ready");
+
+  const done = (el: HTMLElement) => el.classList.add("is-animated");
+
+  /* Split only once the real fonts are in: splitting in the fallback font
+     and re-splitting when General Sans arrives restarts the animation
+     mid-flight, which reads as lag. Capped so a slow font never blocks. */
+  const fontsReady = Promise.race([
+    document.fonts.ready,
+    new Promise((resolve) => setTimeout(resolve, 1000)),
+  ]);
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+  const revealText = (el: HTMLElement) => {
+    const kind = (el.dataset.reveal ?? "lines") as "lines" | "words" | "chars";
+    const delay = Number(el.dataset.revealDelay) || 0;
+
+    SplitText.create(el, {
+      type: kind === "chars" ? "words,chars" : kind,
+      linesClass: "reveal-line",
+      /* The text stays readable as one paragraph to screen readers; an
+         aria-label on a <p> is not allowed */
+      aria: "none",
+      autoSplit: true,
+      onSplit(split) {
+        const parts = split[kind];
+        const tween = gsap.from(parts, {
+          autoAlpha: 0,
+          y: motion.text.y,
+          force3D: true,
+          ease: motion.text.ease,
+          duration: motion.text.duration,
+          stagger: motion.stagger[kind],
+          delay,
+          /* Own GPU layer only while moving */
+          onStart: () => gsap.set(parts, { willChange: "transform, opacity" }),
+          onComplete: () => gsap.set(parts, { clearProps: "willChange" }),
+        });
+        done(el);
+        return tween;
+      },
+    });
+  };
+
+  const animateBlock = (el: HTMLElement) => {
+    const preset = presets[el.dataset.animate as MotionPreset] ?? presets["fade-up"];
+    const targets = el.hasAttribute("data-animate-children") ? [...el.children] : el;
+    gsap.from(targets, {
+      ...preset,
+      force3D: true,
+      stagger: motion.stagger.items,
+      delay: Number(el.dataset.animateDelay) || 0,
+    });
+    done(el);
+  };
+
+  const play = (el: HTMLElement) =>
+    el.hasAttribute("data-reveal") ? revealText(el) : animateBlock(el);
+
+  const start = async () => {
+    const all = [...document.querySelectorAll<HTMLElement>("[data-reveal], [data-animate]")];
+
+    if (reducedMotion()) {
+      all.forEach(done);
+      return;
+    }
+
+    await fontsReady;
+    /* Let the first frame paint before starting */
+    await nextFrame();
+
+    /* Each element is split and animated only when it scrolls in (12% above
+       the bottom edge), never ahead of time: no ScrollTrigger per element
+       and no splitting text nobody has reached yet. */
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer.unobserve(entry.target);
+          play(entry.target as HTMLElement);
+        }
+      },
+      { rootMargin: "0px 0px -12% 0px" },
+    );
+    all.forEach((el) => observer.observe(el));
+  };
+
+  start();
+</script>
+
+<style is:global>
+  @layer components {
+    /* Hidden only until the script runs; a failed load still shows
+       everything after two seconds. */
+    .js :is([data-reveal], [data-animate]):not(.is-animated) {
+      visibility: hidden;
+    }
+
+    /* Safety net only while the script hasn't loaded */
+    .js:not(.motion-ready) :is([data-reveal], [data-animate]):not(.is-animated) {
+      animation: motion-fallback 0s linear 2s forwards;
+    }
+
+    @keyframes motion-fallback {
+      to {
+        visibility: visible;
+      }
+    }
+  }
+</style>

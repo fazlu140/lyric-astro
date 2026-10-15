@@ -1,0 +1,136 @@
+---
+import GridFrame from "@/components/wrapper/GridFrame.astro";
+import Heading from "@/components/typography/Heading.astro";
+import { integrations, integrationTags } from "@/data/platform.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+/* `npm run fetch-assets` saves the logos into the repo; until then they
+   load from the Webflow CDN. */
+const local = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/logos/integrations/*.svg",
+  { eager: true },
+);
+const slug = (name: string) => name.toLowerCase().replace(/\s+/g, "-");
+const logos = integrations.map((logo, i) => {
+  const file = Object.entries(local).find(([path]) => path.endsWith(`/${slug(logo.name)}.svg`));
+  return {
+    ...logo,
+    url: file ? file[1].default.src : logo.src,
+    /* Two columns of five, every other row, from Figma 5405:14250 */
+    c: i % 2 === 0 ? 13 : 17,
+    r: 1 + Math.floor(i / 2) * 2,
+  };
+});
+---
+
+<GridFrame render={render} theme="dark" rows={11} card={[1, 1, 10, 9]} class="integrations_wrap" cardClass="integrations_card">
+  <Heading class="integrations_title" reveal="lines">
+    Seamlessly connect with any system - custom automated closed-loop integration
+  </Heading>
+  <ul class="integrations_tags" data-animate="fade-up" data-animate-children>
+    {integrationTags.map((tag) => <li>{tag}</li>)}
+  </ul>
+
+  <ul slot="aside" class="integrations_logos" aria-label="Systems Lyric Studio connects with" data-animate="fade-up" data-animate-children>
+    {logos.map((logo) => (
+      <li class="integrations_logo" style={`--_c: ${logo.c}; --_r: ${logo.r}`} data-grid-cover>
+        <img src={logo.url} alt={logo.name} width="112" height="40" loading="lazy" decoding="async" />
+      </li>
+    ))}
+  </ul>
+</GridFrame>
+
+<style is:global>
+  @layer components {
+    .integrations_card .grid-frame_card-inner {
+      align-items: start;
+      gap: var(--space-5);
+      padding: var(--space-6) var(--space-4);
+      text-align: left;
+    }
+
+    .integrations_title {
+      max-width: 14em;
+      margin: 0;
+    }
+
+    .integrations_tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3) var(--space-4);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-family: var(--secondary-family);
+      font-size: var(--text-small);
+      & li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        &::before {
+          content: "";
+          width: 0.5625rem;
+          height: 0.5625rem;
+          background-color: var(--plum-400);
+        }
+      }
+    }
+
+    /* Phones and tablets: two columns under the card, each logo two cells
+       tall, so the grid lines still run through */
+    .integrations_logos {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: calc(var(--_cell) * 2);
+      margin: var(--_cell) 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .integrations_logo {
+      display: grid;
+      place-items: center;
+      & img {
+        display: block;
+        width: auto;
+        max-width: 7rem;
+        height: 2.5rem;
+        object-fit: contain;
+      }
+    }
+
+    /* Desktop: each logo centred on its Figma cell */
+    @media (width >= 62rem) {
+      .integrations_card .grid-frame_card-inner {
+        justify-content: center;
+        height: 100%;
+        padding: 0 calc(var(--_cell) * 0.95);
+      }
+
+      .integrations_logos {
+        position: absolute;
+        inset: 0;
+        display: block;
+        margin: 0;
+      }
+
+      .integrations_logo {
+        position: absolute;
+        left: calc(var(--_c) * var(--_cell) - var(--_cell));
+        top: calc(var(--_r) * var(--_cell));
+        width: calc(var(--_cell) * 3);
+        height: var(--_cell);
+        & img {
+          max-width: calc(var(--_cell) * 1.8);
+          height: calc(var(--_cell) * 0.6);
+        }
+      }
+    }
+  }
+</style>

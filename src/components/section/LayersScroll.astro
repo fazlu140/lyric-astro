@@ -1,0 +1,740 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Img from "@/components/media/Img.astro";
+import { pickAsset } from "@/utils/assets.ts";
+import { layers } from "@/data/platform.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/platform/{layers/*,agentic-poster}.{png,jpg,webp,avif}",
+  { eager: true },
+);
+
+const steps = layers.map((layer, i) => ({
+  ...layer,
+  src: pickAsset(images, layer.image),
+  finale: i === layers.length - 1,
+}));
+---
+
+{/* Live's image slider (lyric.tech/platform #platform), rebuilt:
+    desktop pins the section, the copy crossfades on the left and the
+    images ride a centred track on the right; the last step goes dark,
+    the columns trade places and the Agentic AI video plays once.
+    Phones and tablets stack each layer (copy, then image) and the
+    section goes dark as the last one arrives. */}
+{
+  render && (
+    <Section
+      theme="light"
+      borders="frame"
+      paddingTop="none"
+      paddingBottom="none"
+      id="platform"
+      class="layers_wrap"
+      containerClass="layers_stage"
+      style={`--_steps: ${steps.length}`}
+      data-layers
+    >
+      <h2 class="sr-only">The layers of Lyric Studio</h2>
+
+      {/* Left column: one block of copy per layer, stacked in one cell */}
+      <div class="layers_copy">
+        {steps.map((step, i) => (
+          <article
+            class:list={["layers_item", step.finale && "is-finale", i === 0 && "is-active"]}
+            aria-labelledby={`layer-${i}`}
+          >
+            <div class="layers_head">
+              <Heading tag="h3" variant="h2" class="layers_title" id={`layer-${i}`}>
+                {step.name}.
+              </Heading>
+              <Paragraph class="layers_lead">{step.lead}</Paragraph>
+              <Paragraph class="layers_text">{step.text}</Paragraph>
+            </div>
+            <ul class="layers_features">
+              {step.features.map((feature) => (
+                <li class="layers_feature">{feature}</li>
+              ))}
+            </ul>
+
+            {/* Phones and tablets show the image inside the step */}
+            <div class="layers_item-media">
+              <Img class="layers_image" src={step.src} alt="" width={640} loading="lazy" transparent />
+              {step.video && (
+                <video
+                  class="layers_video"
+                  data-src={step.video}
+                  muted
+                  playsinline
+                  preload="none"
+                  aria-hidden="true"
+                  tabindex="-1"
+                />
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {/* Right column (desktop): the image track and the cubes */}
+      <div class="layers_visual" aria-hidden="true">
+        <div class="layers_track">
+          {steps.map((step, i) => (
+            <div class:list={["layers_slide", step.finale && "is-finale", i === 0 && "is-active"]}>
+              <Img
+                class="layers_image"
+                src={step.src}
+                alt=""
+                width={640}
+                loading="lazy"
+                transparent
+              />
+              {step.video && (
+                <video
+                  class="layers_video"
+                  data-src={step.video}
+                  muted
+                  playsinline
+                  preload="none"
+                  tabindex="-1"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <nav class="layers_tabs" aria-label="Platform layers">
+        {steps.map((step, i) => (
+          <button
+            class:list={["layers_tab", i === 0 && "is-active"]}
+            type="button"
+            data-step={i}
+            aria-label={step.name}
+            aria-current={i === 0 ? "step" : undefined}
+          >
+            <svg viewBox="0 0 32 30" aria-hidden="true">
+              <path class="layers_tab-top" d="M16 1 31 9.5 16 18 1 9.5Z" />
+              <path class="layers_tab-left" d="M1 9.5 16 18v11L1 20.5Z" />
+              <path class="layers_tab-right" d="M31 9.5 16 18v11l15-8.5Z" />
+            </svg>
+          </button>
+        ))}
+      </nav>
+    </Section>
+  )
+}
+
+<script>
+  import { whenNear } from "@/utils/near.ts";
+  import { ScrollTrigger, reducedMotion } from "@/utils/gsap.ts";
+  import { fitSticky } from "@/utils/sticky.ts";
+
+  const desktop = window.matchMedia("(width >= 62rem)");
+
+  const load = (video: HTMLVideoElement | null) => {
+    if (video && !video.src && video.dataset.src) {
+      video.src = video.dataset.src;
+      video.addEventListener("playing", () => video.classList.add("is-playing"), { once: true });
+    }
+  };
+
+  /* The finale's video plays once from the start, like live */
+  const play = (video: HTMLVideoElement | null) => {
+    if (!video || reducedMotion()) return;
+    load(video);
+    video.loop = false;
+    try {
+      video.currentTime = 0;
+    } catch {}
+    video.play().catch(() => {});
+  };
+
+  const stop = (video: HTMLVideoElement | null) => {
+    if (!video) return;
+    video.pause();
+    try {
+      video.currentTime = 0;
+    } catch {}
+  };
+
+  for (const section of document.querySelectorAll<HTMLElement>("[data-layers]")) whenNear(section, () => {
+    const stage = section.querySelector<HTMLElement>(".layers_stage")!;
+    const copy = section.querySelector<HTMLElement>(".layers_copy")!;
+    const visual = section.querySelector<HTMLElement>(".layers_visual")!;
+    const track = section.querySelector<HTMLElement>(".layers_track")!;
+    const items = [...section.querySelectorAll<HTMLElement>(".layers_item")];
+    const slides = [...section.querySelectorAll<HTMLElement>(".layers_slide")];
+    const tabs = [...section.querySelectorAll<HTMLButtonElement>(".layers_tab")];
+    const count = items.length;
+    const finale = count - 1;
+    const deskVideo = slides[finale].querySelector("video");
+    const mobileVideo = items[finale].querySelector("video");
+
+    let current = -1;
+    let trigger: ScrollTrigger | undefined;
+    let mobileWatch: IntersectionObserver | undefined;
+    let fitted = false;
+
+    /* How far each column travels when they trade places (as on live:
+       measured, so it holds at any width) */
+    const measure = () => {
+      const a = copy.getBoundingClientRect();
+      const b = visual.getBoundingClientRect();
+      stage.style.setProperty("--_shift-copy", `${b.right - a.right}px`);
+      stage.style.setProperty("--_shift-visual", `${a.left - b.left}px`);
+    };
+
+    /* Keep the active image in the middle of the column */
+    const centre = (i: number) => {
+      const slide = slides[i];
+      const y = visual.clientHeight / 2 - (slide.offsetTop + slide.offsetHeight / 2);
+      track.style.setProperty("--_y", `${y}px`);
+    };
+
+    const activate = (i: number) => {
+      if (i === current) return;
+      current = i;
+      items.forEach((item, n) => {
+        item.classList.toggle("is-active", n === i);
+        item.toggleAttribute("inert", n !== i);
+      });
+      slides.forEach((slide, n) => slide.classList.toggle("is-active", n === i));
+      tabs.forEach((tab, n) => {
+        tab.classList.toggle("is-active", n === i);
+        if (n === i) tab.setAttribute("aria-current", "step");
+        else tab.removeAttribute("aria-current");
+      });
+      centre(i);
+      /* Load the video a step early so it is ready for the finale */
+      if (i >= finale - 1) load(deskVideo);
+      const dark = i === finale;
+      if (dark !== section.classList.contains("is-dark")) {
+        section.classList.toggle("is-dark", dark);
+        if (dark) window.setTimeout(() => current === finale && play(deskVideo), 1100);
+        else stop(deskVideo);
+      }
+    };
+
+    const setupDesktop = () => {
+      mobileWatch?.disconnect();
+      stop(mobileVideo);
+      if (!fitted) fitSticky(stage);
+      fitted = true;
+      section.classList.remove("is-dark");
+      measure();
+      current = -1;
+      activate(0);
+      /* One step per slice of the pinned scroll distance */
+      trigger = ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "bottom bottom",
+        onUpdate: ({ progress }) => activate(Math.min(finale, Math.floor(progress * count))),
+      });
+    };
+
+    const setupMobile = () => {
+      trigger?.kill();
+      trigger = undefined;
+      stop(deskVideo);
+      current = -1;
+      section.classList.remove("is-dark");
+      items.forEach((item) => {
+        item.removeAttribute("inert");
+        item.classList.add("is-active");
+      });
+      /* The section goes dark as the last layer comes up the screen, and
+         its video plays while it is on screen */
+      mobileWatch = new IntersectionObserver(
+        ([entry]) => {
+          const past = entry.isIntersecting || entry.boundingClientRect.top < 0;
+          section.classList.toggle("is-dark", past);
+          if (entry.isIntersecting) play(mobileVideo);
+          else stop(mobileVideo);
+        },
+        { rootMargin: "0px 0px -20% 0px" },
+      );
+      mobileWatch.observe(items[finale]);
+    };
+
+    const setup = () => (desktop.matches ? setupDesktop() : setupMobile());
+
+    /* A cube scrolls to the middle of its own slice */
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => {
+        if (!trigger) return;
+        const y = trigger.start + ((i + 0.5) / count) * (trigger.end - trigger.start);
+        window.scrollTo({ top: y, behavior: "smooth" });
+      });
+    });
+
+    let resizeTimer = 0;
+    window.addEventListener("resize", () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        if (!desktop.matches) return;
+        section.classList.add("is-measuring");
+        const dark = section.classList.contains("is-dark");
+        section.classList.remove("is-dark");
+        measure();
+        section.classList.toggle("is-dark", dark);
+        section.classList.remove("is-measuring");
+        if (current > -1) centre(current);
+      }, 150);
+    });
+
+    desktop.addEventListener("change", setup);
+    setup();
+  });
+</script>
+
+<style is:global>
+  @layer components {
+    /* ---------- Shared: the dark finale's colors ---------- */
+    .layers_wrap {
+      transition:
+        background-color 0.6s var(--motion-ease-in-out),
+        color 0.6s var(--motion-ease-in-out);
+    }
+
+    /* Live goes to pure black so the video's own black background has no
+       edge */
+    .layers_wrap.is-dark {
+      --background: #000;
+      --text: var(--white);
+      --text-2: var(--grey-200);
+      --border: var(--grey-800);
+      color-scheme: dark;
+    }
+
+    .layers_wrap::after,
+    .layers_copy,
+    .layers_feature {
+      transition: border-color 0.6s var(--motion-ease-in-out);
+    }
+
+    /* ---------- Phones and tablets: stacked ---------- */
+    .layers_wrap > .container.layers_stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      padding-inline: 0;
+    }
+
+    .layers_copy {
+      display: grid;
+    }
+
+    .layers_item {
+      display: flex;
+      flex-direction: column;
+      border-bottom: var(--border-width) solid var(--border);
+      &:last-of-type {
+        border-bottom: 0;
+      }
+    }
+
+    .layers_head {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      padding: var(--space-6) var(--content-inset) var(--space-5);
+    }
+
+    .layers_title,
+    .layers_lead,
+    .layers_text {
+      margin: 0;
+    }
+
+    .layers_title {
+      margin-bottom: var(--space-1);
+    }
+
+    .layers_lead {
+      max-width: 27rem;
+      font-weight: var(--primary-medium);
+    }
+
+    .layers_text {
+      max-width: 27rem;
+      color: var(--text-2);
+    }
+
+    /* Features: a bordered list on phones, Figma's 2 by 2 grid from tablets */
+    .layers_features {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border-top: var(--border-width) solid var(--border);
+    }
+
+    .layers_feature {
+      position: relative;
+      padding: var(--space-4) var(--content-inset) var(--space-4)
+        calc(var(--content-inset) + 1.25rem);
+      color: var(--text-2);
+      font-size: var(--text-small);
+      line-height: 1.7;
+      &::before {
+        content: "";
+        position: absolute;
+        left: var(--content-inset);
+        top: calc(var(--space-4) + 0.55em);
+        width: 0.5625rem;
+        height: 0.5625rem;
+        background-color: var(--plum-400);
+      }
+      &:not(:first-of-type) {
+        border-top: var(--border-width) solid var(--border);
+      }
+    }
+
+    .layers_item-media {
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: var(--space-6) var(--content-inset);
+      border-top: var(--border-width) solid var(--border);
+      & > * {
+        grid-area: 1 / 1;
+      }
+    }
+
+    .layers_image {
+      display: block;
+      width: 100%;
+      max-width: 32rem;
+      height: auto;
+    }
+
+    .layers_item.is-finale .layers_item-media {
+      & .layers_image,
+      & .layers_video {
+        width: min(100%, 26rem);
+        aspect-ratio: 1;
+        object-fit: contain;
+      }
+    }
+
+    /* The video fades in over its still once it is actually playing */
+    .layers_video {
+      display: block;
+      opacity: 0;
+      transition: opacity 0.7s var(--motion-ease-out);
+      &.is-playing {
+        opacity: 1;
+      }
+    }
+
+    .layers_visual,
+    .layers_tabs {
+      display: none;
+    }
+
+    @media (width >= 48rem) {
+      .layers_features {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .layers_feature {
+        &:nth-of-type(2) {
+          border-top: 0;
+        }
+        &:nth-of-type(even) {
+          border-left: var(--border-width) solid var(--border);
+        }
+      }
+    }
+
+    /* ---------- Desktop: pinned ---------- */
+    @media (width >= 62rem) {
+      .layers_wrap {
+        --_step-scroll: 80svh;
+        height: calc(
+          max(100svh - var(--nav-height), var(--_stage-h, 0px)) +
+            (var(--_steps) - 1) * var(--_step-scroll)
+        );
+        justify-content: start;
+      }
+
+      .layers_wrap > .container.layers_stage {
+        --_swap-ease: cubic-bezier(0.65, 0, 0.35, 1);
+        position: sticky;
+        top: var(--_sticky-top, var(--nav-height));
+        height: calc(100svh - var(--nav-height));
+        min-height: 38rem;
+        /* Column widths from Figma (554 and 758 of 1312) */
+        grid-template-columns: 554fr 758fr;
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
+        overflow: clip;
+      }
+
+      /* Copy column: its right edge is the divider. On the swap it slides
+         to the right edge and the divider becomes its left edge. */
+      .layers_copy {
+        position: relative;
+        z-index: 1;
+        grid-area: 1 / 1;
+        min-height: 0;
+        /* Solid, so the visual slides underneath it during the swap */
+        background-color: var(--background);
+        border-right: var(--border-width) solid var(--border);
+        border-left: var(--border-width) solid transparent;
+        translate: 0 0;
+        transition:
+          translate 1.1s var(--_swap-ease),
+          border-color 0.6s var(--motion-ease-in-out),
+          background-color 0.6s var(--motion-ease-in-out);
+      }
+
+      .layers_item {
+        grid-area: 1 / 1;
+        border: 0;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          opacity 0.5s var(--motion-ease-out),
+          visibility 0s 0.5s;
+      }
+
+      .layers_item.is-active {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.5s var(--motion-ease-out);
+      }
+
+      .layers_head {
+        padding-top: var(--space-7);
+      }
+
+      .layers_text {
+        margin-top: var(--space-3);
+      }
+
+      .layers_features {
+        margin-top: auto;
+        margin-bottom: var(--space-8);
+        border-bottom: var(--border-width) solid var(--border);
+      }
+
+      .layers_feature {
+        min-height: 6.25rem;
+        padding: var(--space-4) var(--space-4) var(--space-4) 2.25rem;
+        &::before {
+          left: var(--space-3);
+        }
+      }
+
+      .layers_item-media {
+        display: none;
+      }
+
+      /* Visual column: a track of images, the active one centred, full
+         size and in color; the rest 60%, half faded and grey (as live) */
+      .layers_visual {
+        position: relative;
+        grid-area: 1 / 2;
+        min-height: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        overflow: clip;
+        translate: 0 0;
+        transition: translate 1.1s var(--_swap-ease);
+      }
+
+      .layers_track {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2rem;
+        translate: 0 var(--_y, 0px);
+        transition: translate 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .layers_slide {
+        flex: none;
+        position: relative;
+        display: grid;
+        place-items: center;
+        /* The live images are 2088 × 1324, shown 35% of the screen tall */
+        height: 35svh;
+        aspect-ratio: 2088 / 1324;
+        max-width: 100%;
+        scale: 0.6;
+        opacity: 0.5;
+        filter: grayscale(1);
+        transition:
+          scale 0.9s cubic-bezier(0.215, 0.61, 0.355, 1),
+          opacity 0.9s cubic-bezier(0.215, 0.61, 0.355, 1),
+          filter 0.9s cubic-bezier(0.215, 0.61, 0.355, 1);
+        & > * {
+          grid-area: 1 / 1;
+        }
+      }
+
+      .layers_slide .layers_image {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .layers_slide.is-active {
+        scale: 1;
+        opacity: 1;
+        filter: none;
+      }
+
+      /* The finale: a square, 70% of the screen tall, hidden until dark */
+      .layers_slide.is-finale {
+        height: 70svh;
+        aspect-ratio: 1;
+        scale: 1;
+        opacity: 0;
+        filter: none;
+        transition: opacity 0.3s var(--motion-ease-in);
+        & .layers_image,
+        & .layers_video {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          max-width: none;
+          max-height: none;
+          object-fit: contain;
+        }
+      }
+
+      .layers_tabs {
+        grid-column: 2;
+        grid-row: 1;
+        z-index: 2;
+        justify-self: end;
+        align-self: center;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-right: var(--space-4);
+        transition: opacity 0.4s var(--motion-ease-out);
+      }
+
+      .layers_tab {
+        display: block;
+        width: 2rem;
+        cursor: pointer;
+        & svg {
+          display: block;
+          width: 100%;
+          height: auto;
+        }
+        & path {
+          transition: fill var(--motion-base) var(--motion-ease-out);
+        }
+        &:focus-visible {
+          outline: 1px solid var(--plum-400);
+          outline-offset: 2px;
+        }
+      }
+
+      .layers_tab-top {
+        fill: #ececec;
+      }
+      .layers_tab-left {
+        fill: #e3e3e3;
+      }
+      .layers_tab-right {
+        fill: #dcdcdc;
+      }
+
+      @media (hover: hover) {
+        .layers_tab:hover .layers_tab-top {
+          fill: #d9cfe0;
+        }
+      }
+
+      .layers_tab.is-active {
+        & .layers_tab-top {
+          fill: #9887ac;
+        }
+        & .layers_tab-left {
+          fill: #6d5581;
+        }
+        & .layers_tab-right {
+          fill: #44275f;
+        }
+      }
+
+      /* ---- The swap ---- */
+      .layers_wrap.is-dark .layers_copy {
+        translate: var(--_shift-copy, 0px) 0;
+        border-right-color: transparent;
+        border-left-color: var(--border);
+      }
+
+      .layers_wrap.is-dark .layers_visual {
+        translate: var(--_shift-visual, 0px) 0;
+      }
+
+      /* The layer images and cubes fade, the video comes in */
+      .layers_wrap.is-dark .layers_slide:not(.is-finale) {
+        opacity: 0;
+        transition: opacity 0.4s var(--motion-ease-out);
+      }
+
+      .layers_wrap.is-dark .layers_slide.is-finale {
+        opacity: 1;
+        transition: opacity 0.7s var(--motion-ease-out) 0.25s;
+      }
+
+      .layers_wrap.is-dark .layers_tabs {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* Resizing measures the resting layout without animating */
+      .layers_wrap.is-measuring * {
+        transition: none !important;
+      }
+    }
+
+    /* Short desktop screens: tighter copy so the features still fit */
+    @media (width >= 62rem) and (height < 50rem) {
+      .layers_head {
+        padding-top: var(--space-5);
+      }
+
+      .layers_features {
+        margin-bottom: var(--space-5);
+      }
+
+      .layers_feature {
+        min-height: 5rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .layers_wrap,
+      .layers_wrap * {
+        transition-duration: 0s !important;
+        transition-delay: 0s !important;
+      }
+    }
+  }
+</style>
