@@ -5,9 +5,22 @@
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
+import { presentationTool } from "sanity/presentation";
+import { vercelProtectionBypassTool } from "@sanity/vercel-protection-bypass";
 import { schemaTypes, singletons } from "./src/sanity/schemaTypes/index.ts";
 import { structure } from "./src/sanity/structure.ts";
+import { resolve } from "./src/sanity/presentation.ts";
 import { apiVersion, dataset, projectId } from "./src/sanity/env.ts";
+
+/* The preview the Presentation tool opens. On the site's own /studio it is
+   the same site; the hosted Studio needs the full Vercel preview URL
+   (SANITY_STUDIO_PREVIEW_URL), and falls back to your local dev server. */
+const previewUrl =
+  (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
+    ?.SANITY_STUDIO_PREVIEW_URL ||
+  (typeof window !== "undefined" && window.location.pathname.startsWith("/studio")
+    ? window.location.origin
+    : "http://localhost:4321");
 
 export default defineConfig({
   name: "lyric",
@@ -16,9 +29,20 @@ export default defineConfig({
   dataset,
   plugins: [
     structureTool({ structure }),
+    /* "Presentation" in the top bar: the site in a frame, click any text to
+       edit it. It shows the preview deployment, which renders drafts. */
+    presentationTool({
+      resolve,
+      previewUrl: {
+        initial: previewUrl,
+      },
+    }),
     /* A playground for GROQ, Sanity's query language. Try queries here
        before putting them in the site. */
     visionTool({ defaultApiVersion: apiVersion }),
+    /* Lets Presentation open the Vercel preview even though it is behind
+       Vercel Authentication. Paste the bypass secret once in its tab. */
+    vercelProtectionBypassTool(),
   ],
   schema: {
     types: schemaTypes,

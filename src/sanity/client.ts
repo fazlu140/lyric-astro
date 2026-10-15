@@ -1,15 +1,42 @@
 import { createClient, type QueryParams } from "@sanity/client";
+import { stegaClean } from "@sanity/client/stega";
 import { createImageUrlBuilder, type SanityImageSource } from "@sanity/image-url";
 import { toHTML } from "@portabletext/to-html";
-import { apiVersion, dataset, isSanityConfigured, projectId } from "./env.ts";
+import {
+  apiVersion,
+  dataset,
+  isSanityConfigured,
+  projectId,
+  readToken,
+  studioUrl,
+  visualEditing,
+} from "./env.ts";
 
 /**
- * Read-only client for published content. The site is static, so this runs
- * at build time only: no Sanity code or token ever reaches the browser.
+ * Read-only client. Production: published content, read at build time, no
+ * token. Preview (Visual Editing): drafts, read per request on the server
+ * with a viewer token, and "stega": invisible characters inside each string
+ * that tell the Studio which field it came from, so clicking text on the
+ * page opens that field. The token never reaches the browser.
  */
 const client = isSanityConfigured
-  ? createClient({ projectId, dataset, apiVersion, useCdn: false, perspective: "published" })
+  ? createClient({
+      projectId,
+      dataset,
+      apiVersion,
+      useCdn: false,
+      ...(visualEditing
+        ? {
+            perspective: "drafts",
+            token: readToken,
+            stega: { enabled: true, studioUrl },
+          }
+        : { perspective: "published" }),
+    })
   : null;
+
+/** Removes the invisible edit markers: for URLs, attributes, <head> and comparisons. */
+export const clean = <T>(value: T): T => stegaClean(value) as T;
 
 /** Runs a GROQ query. Returns `null` when Sanity isn't set up yet. */
 export async function sanityFetch<T>(query: string, params: QueryParams = {}): Promise<T | null> {

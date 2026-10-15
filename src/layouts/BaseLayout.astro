@@ -6,6 +6,8 @@ import Nav from "@/components/global/Nav.astro";
 import Footer from "@/components/global/Footer.astro";
 import Motion from "@/components/utility/Motion.astro";
 import type { SeoProps } from "@/types.ts";
+import { VisualEditing } from "@sanity/astro/visual-editing";
+import { visualEditing } from "@/sanity/env.ts";
 
 type Props = SeoProps & {
   /** Theme for the whole page. `inherit` leaves the root defaults in place. */
@@ -35,5 +37,7 @@ const { theme = "inherit", overlap = false, ...seo } = Astro.props;
     </main>
     <Footer />
     <Motion />
+    {/* Click-to-edit overlays, only in the Visual Editing preview */}
+    {visualEditing && <VisualEditing enabled zIndex={1000} />}
   </body>
 </html>

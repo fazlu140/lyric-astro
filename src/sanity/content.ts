@@ -7,8 +7,8 @@
 import { customerStories, type CustomerStory } from "@/data/customer-stories.ts";
 import { faq as localFaq } from "@/data/platform.ts";
 import type { SeoProps } from "@/types.ts";
-import { portableTextToHtml, sanityFetch, urlFor } from "./client.ts";
-import { isSanityConfigured } from "./env.ts";
+import { clean, portableTextToHtml, sanityFetch, urlFor } from "./client.ts";
+import { isSanityConfigured, visualEditing } from "./env.ts";
 import { homePageQuery, platformPageQuery, siteSettingsQuery } from "./queries.ts";
 
 type SanityImage = { src: string; width: number; height: number; alt?: string };
@@ -22,8 +22,11 @@ type SanitySeo = {
 
 /** Site defaults, then the page's own fields, then whatever the page passes as a fallback */
 let settings: Promise<SanitySeo> | undefined;
+/* Read once per build; the preview reads it on every request so edits show */
 const siteSeo = () =>
-  (settings ??= sanityFetch<{ seo: SanitySeo }>(siteSettingsQuery).then((doc) => doc?.seo ?? null));
+  visualEditing
+    ? sanityFetch<{ seo: SanitySeo }>(siteSettingsQuery).then((doc) => doc?.seo ?? null)
+    : (settings ??= sanityFetch<{ seo: SanitySeo }>(siteSettingsQuery).then((doc) => doc?.seo ?? null));
 
 async function mergeSeo(page: SanitySeo | undefined, fallback: SeoProps): Promise<SeoProps> {
   const site = await siteSeo();
@@ -31,8 +34,9 @@ async function mergeSeo(page: SanitySeo | undefined, fallback: SeoProps): Promis
   const image = pick("image");
   return {
     ...fallback,
-    title: page?.title || fallback.title,
-    description: pick("description") || fallback.description,
+    /* <head> text must be clean: edit markers only belong in visible text */
+    title: clean(page?.title) || fallback.title,
+    description: clean(pick("description")) || fallback.description,
     noindex: page?.noindex ?? fallback.noindex,
     image: image?.asset ? urlFor(image).width(1200).height(630).fit("crop").url() : fallback.image,
   };
@@ -65,13 +69,13 @@ export async function getHomeContent(fallbackSeo: SeoProps = {}) {
           .filter((story) => story?.image?.src && story.logo?.src)
           .map((story) => ({
             title: story.title,
-            href: `/customer-stories/${story.slug}`,
+            href: `/customer-stories/${clean(story.slug)}`,
             image: { src: story.image.src, width: story.image.width, height: story.image.height },
             logo: {
               src: story.logo.src,
               width: story.logo.width,
               height: story.logo.height,
-              alt: story.client,
+              alt: clean(story.client),
             },
           }))
       : customerStories;

@@ -3,6 +3,7 @@ import { defineConfig, fontProviders } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 import sanity from "@sanity/astro";
 import react from "@astrojs/react";
+import vercel from "@astrojs/vercel";
 import { loadEnv } from "vite";
 import { SITE_URL } from "./src/consts.ts";
 import { isNoindexRoute } from "./src/utils/seo.ts";
@@ -10,6 +11,9 @@ import { isNoindexRoute } from "./src/utils/seo.ts";
 /* .env isn't loaded yet when this file runs, so read it here */
 const env = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
 const projectId = env.PUBLIC_SANITY_PROJECT_ID;
+/* Preview build for the Studio's Presentation tool: rendered per request
+   with drafts. Production builds leave this off and stay static. */
+const visualEditing = Boolean(projectId) && env.SANITY_VISUAL_EDITING === "true";
 
 /* Sanity, with the Studio at /studio, once a project ID is set. Until then
    the site builds from the local data files and there is no /studio. */
@@ -29,6 +33,8 @@ const cms = projectId
 
 export default defineConfig({
   site: SITE_URL,
+  output: visualEditing ? "server" : "static",
+  ...(visualEditing ? { adapter: vercel() } : {}),
   /* Customer story images come from the Webflow CMS until it moves here */
   /* Remote images Astro may optimise: the Webflow CMS (until it is retired)
      and Sanity's image CDN */

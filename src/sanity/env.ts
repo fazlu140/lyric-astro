@@ -24,3 +24,17 @@ export const isSanityConfigured = projectId.length > 0;
 
 /** Where the embedded Studio lives on the site. */
 export const studioBasePath = "/studio";
+
+/**
+ * Visual Editing (the Studio's Presentation tool). Only the preview build
+ * turns it on: it renders every request on the server with draft content
+ * and invisible edit markers in the text. Production stays static and
+ * published-only. Set on Vercel for Preview deployments, never Production.
+ */
+export const visualEditing = read("SANITY_VISUAL_EDITING") === "true";
+
+/** Viewer token so the preview can read drafts. Server-only, never PUBLIC_. */
+export const readToken = read("SANITY_API_READ_TOKEN") ?? "";
+
+/** Where an edit marker sends you when the page is open outside the Studio. */
+export const studioUrl = read("PUBLIC_SANITY_STUDIO_URL") ?? "https://lyric-practice.sanity.studio";
