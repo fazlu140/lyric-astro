@@ -169,6 +169,21 @@ Figma section `5405:10880`, frame `5405:13684`. Copy, SEO and media from the liv
 
 Titles that already contain " | " are used as is by `BaseHead` (so this page keeps live's "| Lyric Studio").
 
+## About page (`src/pages/about-us.astro`)
+
+Figma section `6591:579`, frame `6951:2654` (notes by Kinjal: prototype at prototype.lyric.tech/p/540/website-mockup-lyric-company-page-final, team photos swap on hover like the live site, the four newest leaders have no hover photo, the Chorus names scroll on a loop). Copy, SEO and media URLs from the live page (lyric.tech/about-us); all of it lives in `src/data/about.ts`. URL is `/about-us` as on live (the nav link said `/about`, now fixed).
+
+| Section | Figma | Component | Notes |
+| --- | --- | --- | --- |
+| Founder's letter | `6951:2655` | `AboutLetter` | Team photo (greyscale) under the nav, drifting slower than the page; the letter card starts on the photo and runs onto white. Bold sentence and live's byline ("Ganesh Ramakrishna, Founder & CEO") instead of Figma's "With Love". |
+| How did we get here? | `6951:2721` | `AboutTimeline` | 8 years on a ruler (one tall tick, eight short, CSS gradients) running off the right edge. Native scroll-snap (trackpad and swipe), arrows step one year and disable at the ends (the disabled one is outlined, as in Figma). Investor logos on 2025. |
+| Five things we don't compromise on | `6951:2896` | `AboutValues` | Accordion (real buttons, `aria-expanded`) that plays through by itself like live: 10s each, the open one's line fills in plum (a CSS animation; `animationend` opens the next). Pauses off screen, under the mouse and while the keyboard is inside; no autoplay for reduced motion. On desktop the list keeps the height of its longest state, so nothing jumps. |
+| The people who set the tempo + Chorus | `7164:5023` | `AboutTeam` | 10 leaders as on live, hover crossfades to the playful photo (CSS only). "And with them": every name scrolls up (CSS, 60s) behind the word CHORUS, which is white on black with `mix-blend-mode: darken`, so the names only show through the letters (live's technique). |
+| One Chorus, six cities | `6951:3002` | `AboutCities` (GridFrame dark 20×10) | Six offices as on live (Figma has five, no Pune). Pins are dashed boxes on cells with a stem; the globe lines are an SVG circle and two meridians in cell units (live uses an image). Phones: two columns of pins. |
+| Add your voice to the Chorus | `6951:3263` | GridFrame light in the page | "See open roles" opens Ashby in a new tab. |
+
+**Media without stand-ins:** `assetOr()` (`src/utils/assets.ts`) returns the local file once `npm run fetch-assets` has saved it, otherwise the CDN URL from `about.ts`. `fetch-assets.mjs` imports `about.ts`, so a new leader needs only a line in the data file.
+
 ## Not for search engines
 
 This is a practice rebuild of a client's site (their design is their IP), so **nothing may be indexed**. `ALLOW_INDEXING = false` in `src/utils/seo.ts` makes every page noindex (no page prop or CMS field can override it), `robots.txt` disallows all crawlers, the sitemap is empty, and `vercel.json` adds `X-Robots-Tag: noindex` to every response. On top of that, Vercel Deployment Protection (Vercel Authentication, All Deployments) should be on so only invited people can open it. Never flip `ALLOW_INDEXING` without Fazlu saying so.
@@ -233,6 +248,10 @@ Content that editors change lives in Sanity; layout, animation and the rest of t
 - Answer questions fully before continuing. Keep lessons short unless asked for more.
 
 ## Still open
+
+- About: Figma's team grid has two more leaders than live, Hitesh Mulani (Finance) and Casey Jameson (People), photos in Figma. Add them to `leaders` once confirmed.
+- About: Figma says "One Chorus, five cities"; live (and ours) says six, with Pune.
+- About: team, letter and timeline are good candidates for Sanity next (editors will want to add people).
 
 - Platform: live's hero and CTA buttons have no links. Ours: "Explore the Platform" → `#platform`, "Book a working session" → `/demo`, "Join our next webinar" → `/webinars`. Confirm.
 - Platform layer images, agent tab posters and integration logos are Figma stand-ins or CDN links until `npm run fetch-assets`. The Agentic AI cylinder is a 1x Figma still under the live video.

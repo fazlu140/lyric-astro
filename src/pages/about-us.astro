@@ -1,0 +1,74 @@
+---
+import Layout from "@/layouts/BaseLayout.astro";
+import GridFrame from "@/components/wrapper/GridFrame.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Paragraph from "@/components/typography/Paragraph.astro";
+import Button from "@/components/Button.astro";
+import AboutLetter from "@/components/section/AboutLetter.astro";
+import AboutTimeline from "@/components/section/AboutTimeline.astro";
+import AboutValues from "@/components/section/AboutValues.astro";
+import AboutTeam from "@/components/section/AboutTeam.astro";
+import AboutCities from "@/components/section/AboutCities.astro";
+import { careersUrl } from "@/data/about.ts";
+
+/* SEO from the live page (lyric.tech/about-us) */
+const seo = {
+  title: "About Lyric | Why We're Rebuilding Supply Chain Tech",
+  description:
+    "Supply chain decisions deserved better than siloed tools. Read why we started Lyric, what we believe, and meet the team carrying it forward.",
+};
+---
+
+<Layout theme="light" {...seo}>
+  {/* What Lyric actually is: the founder's letter */}
+  <AboutLetter />
+
+  {/* How did we get here? */}
+  <AboutTimeline />
+
+  {/* Five things we don't compromise on */}
+  <AboutValues />
+
+  {/* The people who set the tempo, and the Chorus */}
+  <AboutTeam />
+
+  {/* One Chorus, six cities */}
+  <AboutCities />
+
+  {/* Add your voice to the Chorus (Figma 6951:3263) */}
+  <GridFrame
+    theme="light"
+    rows={8}
+    card={[4, 1, 12, 6]}
+    lit={[[2, 1], [17, 1], [1, 3], [18, 3], [2, 6], [17, 6]]}
+    cardClass="acta_card"
+  >
+    <Heading class="acta_title" reveal="lines">Add your voice to the Chorus.</Heading>
+    <Paragraph class="acta_text" reveal="lines" revealDelay={0.15}>
+      Specific roles come and go, but we are always looking for great talent.
+      Check out our current needs and if you don’t see a fit, introduce
+      yourself anyway!
+    </Paragraph>
+    <div class="acta_button" data-animate="fade-up" data-animate-delay="0.3">
+      <Button element="link" href={careersUrl} target="_blank" rel="noopener">See open roles</Button>
+    </div>
+  </GridFrame>
+</Layout>
+
+<style is:global>
+  @layer components {
+    .acta_title,
+    .acta_text {
+      margin: 0;
+    }
+
+    .acta_text {
+      max-width: 36rem;
+      color: var(--text-2);
+    }
+
+    .acta_button {
+      margin-top: var(--space-3);
+    }
+  }
+</style>
