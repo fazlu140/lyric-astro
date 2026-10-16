@@ -11,7 +11,8 @@
  *   has written.
  *
  * Runs through `sanity exec --with-user-token`, so it acts as you, logged in
- * with `npx sanity login`; no token to create. Images are downloaded from
+ * with `npx sanity login`; no token to create. GitHub runs it after every
+ * merge to main with a write token (.github/workflows/sanity.yml). Images are downloaded from
  * where the site gets them today (the Webflow CDN, or files in the repo) and
  * uploaded to Sanity; Sanity skips files it already has.
  *
@@ -221,7 +222,11 @@ const client = DRY
           : [],
       assets: { upload: async (_type, _body, { filename }) => ({ _id: `image-dry-${filename}` }) },
     }
-  : (await import("sanity/cli")).getCliClient({ apiVersion: "2026-10-01" });
+  : (await import("sanity/cli")).getCliClient({
+      apiVersion: "2026-10-01",
+      /* GitHub passes a write token; on your machine your login is used */
+      ...(process.env.SANITY_WRITE_TOKEN ? { token: process.env.SANITY_WRITE_TOKEN } : {}),
+    });
 
 /* Uploads each image once, then swaps the marker for a real image field */
 const uploaded = new Map();

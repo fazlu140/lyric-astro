@@ -20,4 +20,7 @@ export default defineCliConfig({
     projectId: process.env.PUBLIC_SANITY_PROJECT_ID,
     dataset: process.env.PUBLIC_SANITY_DATASET ?? "production",
   },
+  /* lyric-practice.sanity.studio. Set here so `sanity deploy` never asks,
+     which lets GitHub deploy it (.github/workflows/sanity.yml) */
+  studioHost: "lyric-practice",
 });
