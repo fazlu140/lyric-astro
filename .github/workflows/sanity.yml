@@ -1,0 +1,56 @@
+# After every merge to main, without anyone running a command:
+#   1. the `preview` branch is moved to match main, so Vercel rebuilds the
+#      preview the Studio's Presentation tab opens
+#   2. the CMS gets any new content from the code (the seed only adds what's
+#      missing, never overwrites an edit)
+#   3. the hosted Studio (lyric-practice.sanity.studio) is redeployed, so new
+#      content types and fields show up
+#
+# Needs, in GitHub → Settings → Secrets and variables → Actions:
+#   Variables: PUBLIC_SANITY_PROJECT_ID, PUBLIC_SANITY_DATASET
+#   Secrets:   SANITY_DEPLOY_TOKEN (role "Deploy Studio"),
+#              SANITY_WRITE_TOKEN (role "Editor")
+name: Sanity
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sanity
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_SANITY_PROJECT_ID: ${{ vars.PUBLIC_SANITY_PROJECT_ID }}
+      PUBLIC_SANITY_DATASET: ${{ vars.PUBLIC_SANITY_DATASET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Move the preview branch to main
+        run: git push origin HEAD:refs/heads/preview --force
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Add new content to the CMS
+        env:
+          SANITY_WRITE_TOKEN: ${{ secrets.SANITY_WRITE_TOKEN }}
+        run: npx sanity exec scripts/sanity-seed.mjs
+
+      - name: Deploy the hosted Studio
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_DEPLOY_TOKEN }}
+        run: npx sanity deploy --yes
