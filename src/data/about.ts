@@ -156,19 +156,18 @@ export const chorus =
   );
 
 /**
- * Offices. `c` and `r` are the pin box's top-left cell on the 20-column
- * desktop grid (Figma 6951:3002, plus Pune from the live site). `m` is the
- * phone map, measured from live at 375px: the pin's centre column, its top
- * row (counted from under the title card) and its stem length, in cells of
- * the 8-column grid.
+ * Offices, laid out like live's map (measured at 1440 and 375px). `d` is
+ * desktop on the 20 by 11 grid, `m` phones on the 8-column grid, both in
+ * cells: the pin's centre column, its top row and its stem length. Rows on
+ * phones count from under the title card.
  */
 export const cities = [
-  { name: "Palo Alto", country: "United States", c: 4, r: 4, m: [5.9, 0, 1.2] },
-  { name: "Amsterdam", country: "Netherlands", c: 8.5, r: 4, m: [1.76, 6.3, 1.1] },
-  { name: "Bangalore", country: "India", c: 13, r: 4, m: [4, 3.2, 1.65] },
-  { name: "Chicago", country: "United States", c: 4.5, r: 6.5, m: [2.13, 0, 1.2] },
-  { name: "Pune", country: "India", c: 8.5, r: 7, m: [6.72, 6.3, 1.1] },
-  { name: "Chennai", country: "India", c: 12.5, r: 6.5, m: [4.47, 6.3, 1.1] },
+  { name: "Chicago", country: "United States", d: [5.3, 4.5, 1.08], m: [2.13, 0, 1.2] },
+  { name: "Palo Alto", country: "United States", d: [9.95, 4.5, 1.08], m: [5.9, 0, 1.2] },
+  { name: "Bangalore", country: "India", d: [14.65, 4.5, 1.08], m: [4, 3.2, 1.65] },
+  { name: "Amsterdam", country: "Netherlands", d: [5.52, 8.11, 0.76], m: [1.76, 6.3, 1.1] },
+  { name: "Chennai", country: "India", d: [10.58, 8.11, 0.76], m: [4.47, 6.3, 1.1] },
+  { name: "Pune", country: "India", d: [15.07, 8.11, 0.76], m: [6.72, 6.3, 1.1] },
 ];
 
 export const careersUrl = "https://jobs.ashbyhq.com/lyric";

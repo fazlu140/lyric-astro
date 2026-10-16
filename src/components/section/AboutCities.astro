@@ -10,37 +10,39 @@ type Props = {
 
 const { render = true } = Astro.props;
 
-/* Globe lines from Figma 6951:3002, in cells: a circle and two meridians
-   sharing its centre below the grid, so only their tops show. The live site
-   uses a raster image for this. */
+/* The globe, in cells: a dark disc (it hides the grid behind it, as live's
+   image does) and two meridians sharing its centre below the grid, so only
+   the top shows. Live uses a 4358px raster for this; ours is a few lines. */
 const globe = { cx: 10, cy: 13.3, r: 8.4, meridians: [6.05, 2] };
 ---
 
 <GridFrame
   render={render}
   theme="dark"
-  rows={10}
+  rows={11}
   card={[5, 1, 10, 2]}
   class="acities_wrap"
   cardClass="acities_card"
 >
-  <svg slot="layer" class="acities_globe" viewBox="0 0 20 10" aria-hidden="true">
-    <circle cx={globe.cx} cy={globe.cy} r={globe.r} />
-    {globe.meridians.map((rx) => <ellipse cx={globe.cx} cy={globe.cy} rx={rx} ry={globe.r} />)}
-  </svg>
 
   <Heading class="acities_title" reveal="lines">One Chorus, six cities.</Heading>
 
   <div slot="aside" class="acities_map">
+  {/* In the aside, not the grid layer: it sits above the cells that light
+      up, so none of them flash through the globe */}
+  <svg class="acities_globe" viewBox="0 0 20 11" aria-hidden="true">
+    <circle class="acities_disc" cx={globe.cx} cy={globe.cy} r={globe.r} />
+    {globe.meridians.map((rx) => <ellipse cx={globe.cx} cy={globe.cy} rx={rx} ry={globe.r} />)}
+  </svg>
   {/* Phones: the same globe, redrawn for the 8-column grid */}
   <svg class="acities_globe-m" viewBox="0 0 8 8.3" preserveAspectRatio="none" aria-hidden="true">
-    <circle cx="4" cy="7.93" r="6" />
+    <circle class="acities_disc" cx="4" cy="7.93" r="6" />
     <ellipse cx="4" cy="7.93" rx="4.4" ry="6" />
     <ellipse cx="4" cy="7.93" rx="2.6" ry="6" />
   </svg>
   <ul class="acities_list" aria-label="Lyric offices" data-animate="fade-up" data-animate-children>
     {cities.map((city) => (
-      <li class="acities_pin" style={`--_c: ${city.c}; --_r: ${city.r}; --_mx: ${city.m[0]}; --_my: ${city.m[1]}; --_stem: ${city.m[2]}`} data-grid-cover>
+      <li class="acities_pin" style={`--_dx: ${city.d[0]}; --_dy: ${city.d[1]}; --_dstem: ${city.d[2]}; --_mx: ${city.m[0]}; --_my: ${city.m[1]}; --_stem: ${city.m[2]}`} data-grid-cover>
         <span class="acities_name">{city.name}</span>
         <span class="acities_country text-style-mono">{city.country}</span>
         <span class="acities_stem" aria-hidden="true"></span>
@@ -61,6 +63,11 @@ const globe = { cx: 10, cy: 13.3, r: 8.4, meridians: [6.05, 2] };
       .acities_card .grid-frame_card-inner {
         padding-block: var(--space-4);
       }
+    }
+
+    /* The disc is the section's black, so grid lines stop at the globe */
+    .acities_disc {
+      fill: var(--background);
     }
 
     .acities_globe {
@@ -110,7 +117,7 @@ const globe = { cx: 10, cy: 13.3, r: 8.4, meridians: [6.05, 2] };
       align-items: center;
       gap: 0.25rem;
       padding: 0.5rem 0.75rem;
-      border: var(--border-width) dashed var(--grey-800);
+      border: var(--border-width) dashed var(--grey-700);
       background-color: var(--background);
       text-align: center;
       white-space: nowrap;
@@ -166,27 +173,26 @@ const globe = { cx: 10, cy: 13.3, r: 8.4, meridians: [6.05, 2] };
         margin: 0;
       }
 
+      /* Live's sizes: 24px names, 14px countries, 24 by 32px padding */
       .acities_pin {
-        left: calc(var(--_c) * var(--_cell));
-        top: calc(var(--_r) * var(--_cell));
-        translate: none;
-        justify-content: center;
-        width: calc(var(--_cell) * 3);
-        height: calc(var(--_cell) * 1.5);
-        padding: 0;
+        left: calc(var(--_dx) * var(--_cell));
+        top: calc(var(--_dy) * var(--_cell));
+        gap: 0.5rem;
+        padding: 1.5rem 2rem;
       }
 
       .acities_name {
+        font-size: 1.5rem;
         font-weight: var(--primary-medium);
       }
 
       .acities_country {
-        font-size: 0.75rem;
-        font-weight: inherit;
+        font-size: 0.875rem;
+        font-weight: var(--primary-medium);
       }
 
       .acities_stem {
-        height: var(--_cell);
+        height: calc(var(--_cell) * var(--_dstem));
       }
     }
   }
