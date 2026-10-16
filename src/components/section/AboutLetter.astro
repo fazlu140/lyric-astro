@@ -2,23 +2,22 @@
 import Section from "@/components/wrapper/Section.astro";
 import Heading from "@/components/typography/Heading.astro";
 import Img from "@/components/media/Img.astro";
-import { assetOr } from "@/utils/assets.ts";
-import { aboutImages, founder, letter } from "@/data/about.ts";
+import { clean } from "@/sanity/client.ts";
+import type { Picture } from "@/sanity/content.ts";
 
 type Props = {
   /** Set to `false` to omit the component. */
   render?: boolean;
+  /** The background photo. */
+  photo: Picture;
+  /** The letter as HTML paragraphs (from Portable Text or the local copy). */
+  letterHtml: string;
+  /** Who signs it. */
+  founder: { name: string; role: string; signature: Picture };
 };
 
-const { render = true } = Astro.props;
-
-/* The local copies once `npm run fetch-assets` has run, the Webflow CDN until then */
-const files = import.meta.glob<{ default: ImageMetadata }>(
-  "/src/assets/images/about/*.{avif,jpg,png,webp,svg}",
-  { eager: true },
-);
-const photo = assetOr(files, "hero", aboutImages.hero);
-const signature = assetOr(files, "signature", aboutImages.signature);
+const { render = true, photo, letterHtml, founder } = Astro.props;
+const signature = founder.signature;
 ---
 
 {/* Figma 6951:2655, with live's behaviour: the team photo stays put behind
@@ -53,21 +52,14 @@ const signature = assetOr(files, "signature", aboutImages.signature);
     What Lyric Actually Is
   </Heading>
 
-  <article class="aletter_card" aria-label={`A letter from ${founder.name}, ${founder.role}`} data-animate="fade-up" data-animate-delay="0.2">
-    <div class="aletter_text" data-animate="fade-up" data-animate-children>
-      {letter.map((p) => (
-        <p>
-          {p.text}
-          {p.strong && <strong> {p.strong}</strong>}
-        </p>
-      ))}
-    </div>
+  <article class="aletter_card" aria-label={clean(`A letter from ${founder.name}, ${founder.role}`)} data-animate="fade-up" data-animate-delay="0.2">
+    <div class="aletter_text" data-animate="fade-up" data-animate-children set:html={letterHtml} />
 
     <footer class="aletter_sign">
       <Img
         class="aletter_signature"
         src={signature.src}
-        alt={founder.name}
+        alt={clean(founder.name)}
         width={signature.width}
         height={signature.height}
         transparent

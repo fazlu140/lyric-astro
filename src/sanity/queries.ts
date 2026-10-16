@@ -21,6 +21,7 @@ export const siteSettingsQuery = /* groq */ `*[_id == "siteSettings"][0]{ ${seo}
 
 export const homePageQuery = /* groq */ `*[_id == "homePage"][0]{
   ${seo},
+  "logos": logos[]->{ name, "logo": logo${image} },
   "stories": stories[]->{
     title,
     "slug": slug.current,
@@ -32,5 +33,18 @@ export const homePageQuery = /* groq */ `*[_id == "homePage"][0]{
 
 export const platformPageQuery = /* groq */ `*[_id == "platformPage"][0]{
   ${seo},
+  webinar,
   "faqs": faqs[]->{ question, answer }
+}`;
+
+export const aboutPageQuery = /* groq */ `*[_id == "aboutPage"][0]{
+  ${seo},
+  "hero": heroImage${image},
+  letter,
+  founder{ name, role, "signature": signature${image} },
+  "milestones": milestones[]->{ year, title, text, "logos": logos[]${image} },
+  "values": values[]{ title, text },
+  "valuesImage": valuesImage${image},
+  "leaders": leaders[]->{ name, role, "photo": photo${image}, "hover": hoverPhoto${image} },
+  chorus
 }`;

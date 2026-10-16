@@ -14,7 +14,7 @@
     "astro": "astro",
     "format": "prettier --write .",
     "fetch-assets": "node scripts/fetch-assets.mjs",
-    "sanity:seed": "node scripts/sanity-seed.mjs"
+    "sanity:seed": "sanity exec scripts/sanity-seed.mjs --with-user-token"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",

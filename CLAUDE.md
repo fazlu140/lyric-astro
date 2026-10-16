@@ -196,14 +196,24 @@ Content that editors change lives in Sanity; layout, animation and the rest of t
 | --- | --- |
 | `sanity.config.ts` | The Studio: plugins (Structure, Vision), schema, singleton rules |
 | `sanity.cli.ts` | Settings for `npx sanity …` (reads `.env`) |
-| `src/sanity/schemaTypes/` | The content model: `seo` (object), `customerStory`, `faq` (answer is Portable Text), singletons `homePage`, `platformPage`, `siteSettings` |
+| `src/sanity/schemaTypes/` | The content model: `seo` (object); lists `customerStory`, `clientLogo`, `faq` (answer is Portable Text), `leader`, `milestone`; singletons `homePage`, `platformPage`, `aboutPage` (tabs per section), `siteSettings` |
 | `src/sanity/structure.ts` | The Studio's left menu (pages, lists, settings) |
 | `src/sanity/queries.ts` | GROQ queries (try them in /studio → Vision) |
 | `src/sanity/client.ts` | Build-time client (published content only, no token), `urlFor()` image URLs, Portable Text to HTML |
-| `src/sanity/content.ts` | `getHomeContent()`, `getPlatformContent()`: Sanity data in the shape the components already use, local fallback per document |
-| `scripts/sanity-seed.mjs` | `npm run sanity:seed` writes `sanity-seed.ndjson` (gitignored) from the local data, for `npx sanity dataset import` |
+| `src/sanity/content.ts` | `getHomeContent()`, `getPlatformContent()`, `getAboutContent()`: Sanity data in the shape the components take as props, local fallback per field. Components never import data files or query Sanity themselves. |
+| `scripts/sanity-seed.mjs` | `npm run sanity:seed` (`sanity exec --with-user-token`, so it runs as you after `npx sanity login`). **Only adds**: creates documents that don't exist, fills page fields that are empty, never overwrites an edit. Uploads images from the Webflow CDN or the repo. Run it after every content-model change. `SEED_DRY=1 node scripts/sanity-seed.mjs` shows what it would do. |
 
-- In the CMS now: home SEO + customer stories slider (references, drag to reorder), platform SEO + FAQ list, site default SEO. Pages merge page SEO over site SEO over the page's hardcoded fallback.
+- **In the CMS now** (everything the live Webflow site keeps in its CMS, plus what editors will want to change):
+
+  | Page | In Sanity | Stays in code |
+  | --- | --- | --- |
+  | Home | SEO, logo strip (`clientLogo` refs, ordered), customer stories slider | Section headlines and copy, animations |
+  | Platform | SEO, FAQ list, "Join our next webinar" link | Section copy, layer and agent media |
+  | About | SEO, background photo, the letter (Portable Text, bold only), signer and signature, timeline (`milestone` refs, each with optional logos), values + photo, leadership team (`leader` refs, photo + optional hover photo), Chorus names | Headlines, cities (their positions are layout), careers link |
+  | All | Default SEO (`siteSettings`) | |
+
+  Pages merge page SEO over site SEO over the page's hardcoded fallback.
+- **CMS-first rule for every page from now on.** Before building a page, list what live keeps in Webflow's CMS (`.w-dyn-list` on the page: fetch the live HTML and count them) and what an editor would reasonably change (people, dates, links to the next event, lists that grow). Those go in Sanity: lists as documents the page references (so they can be reused and reordered), one-off page content as fields on the page's singleton, grouped in tabs per section. Headlines that are part of the design, layout numbers (grid positions, sizes) and animation stay in code. Then: schema, query, a `get…Content()` with a local fallback, components take props, `presentation.ts` locations, Studio menu, seed entries, and `npx sanity deploy` for the hosted Studio.
 - Lists are documents, pages pick and order them with **references** (one FAQ can sit on several pages). One-off page content goes in the page's **singleton** (fixed ID, no create or delete in the Studio).
 - Static site: content is read at build time. Publishing needs a rebuild: a Sanity webhook calls a Vercel deploy hook.
 - Story images come from Sanity's CDN (`cdn.sanity.io`, in `image.domains`) once imported; the seed import copies them from the Webflow CDN.
@@ -214,7 +224,7 @@ Content that editors change lives in Sanity; layout, animation and the rest of t
   - `optimizeDeps.include: ["@sanity/visual-editing/react"]` (preview mode only): the overlay pulls in CommonJS lodash, which Vite must pre-bundle or the page fails to hydrate.
   - `fixSanityAliases()` in `astro.config.mjs`: `@sanity/astro` points the `sanity` and `styled-components` aliases at each package's folder by cutting `/package.json` off a path, but on Windows the path uses `\`, so nothing is cut and the alias points at the `package.json` file itself ("`css` is not exported by styled-components/package.json"). The plugin runs after Sanity's (`enforce: "post"`) and corrects those entries in place. Adding a second, correct alias does not work: Sanity's still wins inside Vite's pre-bundling.
   - Test any Vite or Sanity change on Windows paths, or simulate them, before handing over. After changing dependencies or Vite config, start with `npm run dev -- --force` to rebuild Vite's cache.
-- Next steps, in order: move more sections into the model one at a time; customer story pages (`/customer-stories/[slug].astro` with `getStaticPaths`).
+- Next steps: customer story pages (`/customer-stories/[slug].astro` with `getStaticPaths`); an `event` type for webinars, so "Join our next webinar" can pick the next one by date (live does this) instead of a fixed link.
 
 ## Animation and performance
 
@@ -251,7 +261,6 @@ Content that editors change lives in Sanity; layout, animation and the rest of t
 
 - About: Figma's team grid has two more leaders than live, Hitesh Mulani (Finance) and Casey Jameson (People), photos in Figma. Add them to `leaders` once confirmed.
 - About: Figma says "One Chorus, five cities"; live (and ours) says six, with Pune.
-- About: team, letter and timeline are good candidates for Sanity next (editors will want to add people).
 
 - Platform: live's hero and CTA buttons have no links. Ours: "Explore the Platform" → `#platform`, "Book a working session" → `/demo`, "Join our next webinar" → `/webinars`. Confirm.
 - Platform layer images, agent tab posters and integration logos are Figma stand-ins or CDN links until `npm run fetch-assets`. The Agentic AI cylinder is a 1x Figma still under the live video.

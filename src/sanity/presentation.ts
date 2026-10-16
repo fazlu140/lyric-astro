@@ -10,6 +10,7 @@ export const resolve: PresentationPluginOptions["resolve"] = {
   mainDocuments: defineDocuments([
     { route: "/", filter: `_id == "homePage"` },
     { route: "/platform", filter: `_id == "platformPage"` },
+    { route: "/about-us", filter: `_id == "aboutPage"` },
   ]),
   /* Document → the pages that show it */
   locations: {
@@ -20,6 +21,28 @@ export const resolve: PresentationPluginOptions["resolve"] = {
     platformPage: defineLocations({
       message: "The platform page",
       resolve: () => ({ locations: [{ title: "Platform", href: "/platform" }] }),
+    }),
+    aboutPage: defineLocations({
+      message: "The about page",
+      resolve: () => ({ locations: [{ title: "About", href: "/about-us" }] }),
+    }),
+    leader: defineLocations({
+      select: { title: "name" },
+      resolve: (doc) => ({
+        locations: [{ title: `${doc?.title ?? "Leader"} (about, team)`, href: "/about-us" }],
+      }),
+    }),
+    milestone: defineLocations({
+      select: { title: "title" },
+      resolve: (doc) => ({
+        locations: [{ title: `${doc?.title ?? "Year"} (about, timeline)`, href: "/about-us" }],
+      }),
+    }),
+    clientLogo: defineLocations({
+      select: { title: "name" },
+      resolve: (doc) => ({
+        locations: [{ title: `${doc?.title ?? "Logo"} (home, logo strip)`, href: "/" }],
+      }),
     }),
     customerStory: defineLocations({
       select: { title: "title" },

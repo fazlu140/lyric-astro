@@ -3,21 +3,16 @@ import Section from "@/components/wrapper/Section.astro";
 import Heading from "@/components/typography/Heading.astro";
 import Button from "@/components/Button.astro";
 import Img from "@/components/media/Img.astro";
-import { assetOr } from "@/utils/assets.ts";
-import { investors, timeline } from "@/data/about.ts";
+import type { Picture } from "@/sanity/content.ts";
 
 type Props = {
   /** Set to `false` to omit the component. */
   render?: boolean;
+  /** The years, in order. The first one is greyed out. */
+  milestones: { year: string; title: string; text: string; logos: Picture[] }[];
 };
 
-const { render = true } = Astro.props;
-
-const files = import.meta.glob<{ default: ImageMetadata }>(
-  "/src/assets/logos/investors/*.svg",
-  { eager: true },
-);
-const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo.file, logo) }));
+const { render = true, milestones } = Astro.props;
 ---
 
 {/* Figma 6951:2721: a ruler of years running off the right edge, moved
@@ -39,17 +34,17 @@ const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo
   </div>
 
   <ol class="atrack_list" aria-label="Lyric's story, year by year" tabindex="0" data-atrack data-animate="fade-up" data-animate-children>
-    {timeline.map((item) => (
+    {milestones.map((item) => (
       <li class="atrack_item">
         <div class="atrack_ruler" aria-hidden="true"></div>
         <p class="atrack_year text-style-mono">{item.year}</p>
         <Heading tag="h3" variant="h4" class="atrack_item-title">{item.title}</Heading>
         <p class="atrack_text">{item.text}</p>
-        {item.investors && (
-          <ul class="atrack_logos" aria-label="Investors">
-            {logos.map((logo) => (
+        {item.logos.length > 0 && (
+          <ul class="atrack_logos">
+            {item.logos.map((logo) => (
               <li>
-                <Img src={logo.src} alt={logo.name} width={logo.width} height={logo.height} transparent />
+                <Img src={logo.src} alt={logo.alt ?? ""} width={logo.width} height={logo.height} transparent />
               </li>
             ))}
           </ul>
