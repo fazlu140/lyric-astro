@@ -1,6 +1,8 @@
 # After every merge to main, without anyone running a command:
-#   1. the `preview` branch is moved to match main, so Vercel rebuilds the
-#      preview the Studio's Presentation tab opens
+#   1. the `preview` branch is moved to match main, and Vercel is asked to
+#      build it (a deploy hook: Vercel won't build a branch on its own when
+#      the commit was already deployed for main), so the preview the Studio's
+#      Presentation tab opens always matches main
 #   2. the CMS gets any new content from the code (the seed only adds what's
 #      missing, never overwrites an edit)
 #   3. the hosted Studio (lyric-practice.sanity.studio) is redeployed, so new
@@ -9,7 +11,8 @@
 # Needs, in GitHub → Settings → Secrets and variables → Actions:
 #   Variables: PUBLIC_SANITY_PROJECT_ID, PUBLIC_SANITY_DATASET
 #   Secrets:   SANITY_DEPLOY_TOKEN (role "Deploy Studio"),
-#              SANITY_WRITE_TOKEN (role "Editor")
+#              SANITY_WRITE_TOKEN (role "Editor"),
+#              VERCEL_PREVIEW_HOOK (Vercel deploy hook for the preview branch)
 name: Sanity
 
 on:
@@ -37,6 +40,11 @@ jobs:
 
       - name: Move the preview branch to main
         run: git push origin HEAD:refs/heads/preview --force
+
+      - name: Build the preview on Vercel
+        env:
+          HOOK: ${{ secrets.VERCEL_PREVIEW_HOOK }}
+        run: curl -fsS -X POST "$HOOK"
 
       - uses: actions/setup-node@v4
         with:
