@@ -11,9 +11,13 @@ export const structure: StructureResolver = (S) =>
     .items([
       single(S, "homePage", "Home page"),
       single(S, "platformPage", "Platform page"),
+      single(S, "aboutPage", "About page"),
       S.divider(),
       S.documentTypeListItem("customerStory").title("Customer stories"),
+      S.documentTypeListItem("clientLogo").title("Client logos"),
       S.documentTypeListItem("faq").title("FAQs"),
+      S.documentTypeListItem("leader").title("Leadership team"),
+      S.documentTypeListItem("milestone").title("Timeline years"),
       S.divider(),
       single(S, "siteSettings", "Site settings"),
     ]);

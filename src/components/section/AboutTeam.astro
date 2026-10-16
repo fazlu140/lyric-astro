@@ -3,26 +3,18 @@ import Section from "@/components/wrapper/Section.astro";
 import Heading from "@/components/typography/Heading.astro";
 import Paragraph from "@/components/typography/Paragraph.astro";
 import Img from "@/components/media/Img.astro";
-import { assetOr } from "@/utils/assets.ts";
-import { chorus, leaders } from "@/data/about.ts";
+import type { Picture } from "@/sanity/content.ts";
 
 type Props = {
   /** Set to `false` to omit the component. */
   render?: boolean;
+  /** The leadership grid, in order. `hover` is the playful photo. */
+  leaders: { name: string; role: string; photo: Picture; hover?: Picture }[];
+  /** Everyone else, scrolling through CHORUS. */
+  chorus: string[];
 };
 
-const { render = true } = Astro.props;
-
-const files = import.meta.glob<{ default: ImageMetadata }>(
-  "/src/assets/images/about/team/*.{avif,jpg,png,webp}",
-  { eager: true },
-);
-const square = { width: 960, height: 960 };
-const team = leaders.map((leader) => ({
-  ...leader,
-  photo: assetOr(files, leader.file, { src: leader.photo, ...square }),
-  hover: leader.hover ? assetOr(files, `${leader.file}-hover`, { src: leader.hover, ...square }) : undefined,
-}));
+const { render = true, leaders: team, chorus } = Astro.props;
 
 const names = chorus.join(" • ");
 ---

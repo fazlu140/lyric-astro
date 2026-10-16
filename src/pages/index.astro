@@ -13,7 +13,7 @@ import CtaGrid from "@/components/section/CtaGrid.astro";
 import { getHomeContent } from "@/sanity/content.ts";
 
 /* Content from Sanity (or the local files until it is set up) */
-const { seo, stories } = await getHomeContent();
+const { seo, logos, stories } = await getHomeContent();
 ---
 
 <Layout theme="dark" {...seo}>
@@ -27,7 +27,7 @@ const { seo, stories } = await getHomeContent();
     paddingTop="none"
     paddingBottom="none"
   >
-    <LogoMarquee />
+    <LogoMarquee logos={logos} />
   </Section>
 
   {/* Supply chains run on decisions */}

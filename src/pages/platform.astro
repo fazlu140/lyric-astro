@@ -16,7 +16,7 @@ import { getPlatformContent } from "@/sanity/content.ts";
 
 /* Content from Sanity (or the local files until it is set up). The SEO
    below is the fallback when the CMS fields are empty. */
-const { seo, faqs } = await getPlatformContent({
+const { seo, faqs, webinar } = await getPlatformContent({
   title: "AI Agents That Know Supply Chain | Lyric Studio",
   description:
     "Lyric Studio puts AI agents at every layer of the platform, grounded, traceable, and auditable, working with planners and modelers on supply chain decisions.",
@@ -63,7 +63,7 @@ const { seo, faqs } = await getPlatformContent({
     </Paragraph>
     <ButtonWrapper class="pcta_buttons" data-animate="fade-up" data-animate-delay="0.3">
       <Button element="link" href="/demo">Book a working session</Button>
-      <Button element="link" href="/webinars" emphasis="secondary">Join our next webinar</Button>
+      <Button element="link" href={webinar} emphasis="secondary">Join our next webinar</Button>
     </ButtonWrapper>
   </GridFrame>
 

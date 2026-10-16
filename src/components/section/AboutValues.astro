@@ -2,21 +2,18 @@
 import Section from "@/components/wrapper/Section.astro";
 import Heading from "@/components/typography/Heading.astro";
 import Img from "@/components/media/Img.astro";
-import { assetOr } from "@/utils/assets.ts";
-import { aboutImages, values } from "@/data/about.ts";
+import type { Picture } from "@/sanity/content.ts";
 
 type Props = {
   /** Set to `false` to omit the component. */
   render?: boolean;
+  /** The values, in the order they play. */
+  values: { title: string; text: string }[];
+  /** The photo beside them. */
+  photo: Picture;
 };
 
-const { render = true } = Astro.props;
-
-const files = import.meta.glob<{ default: ImageMetadata }>(
-  "/src/assets/images/about/*.{avif,jpg,png,webp}",
-  { eager: true },
-);
-const photo = assetOr(files, "values", aboutImages.values);
+const { render = true, values, photo } = Astro.props;
 ---
 
 {/* Figma 6951:2896: five values as an accordion that plays through on its
@@ -66,7 +63,7 @@ const photo = assetOr(files, "values", aboutImages.values);
       <Img
         class="avalues_photo"
         src={photo.src}
-        alt="Lyric's founders together at a Lyric event"
+        alt={photo.alt ?? ""}
         width={1172}
         height={1152}
         variant="constrained"

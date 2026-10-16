@@ -10,27 +10,30 @@ import AboutValues from "@/components/section/AboutValues.astro";
 import AboutTeam from "@/components/section/AboutTeam.astro";
 import AboutCities from "@/components/section/AboutCities.astro";
 import { careersUrl } from "@/data/about.ts";
+import { getAboutContent } from "@/sanity/content.ts";
 
-/* SEO from the live page (lyric.tech/about-us) */
-const seo = {
+/* Content from Sanity (or the local copy until it is there). The SEO below,
+   from the live page, is the fallback when the CMS fields are empty. */
+const about = await getAboutContent({
   title: "About Lyric | Why We're Rebuilding Supply Chain Tech",
   description:
     "Supply chain decisions deserved better than siloed tools. Read why we started Lyric, what we believe, and meet the team carrying it forward.",
-};
+});
+const { seo } = about;
 ---
 
 <Layout theme="light" {...seo}>
   {/* What Lyric actually is: the founder's letter */}
-  <AboutLetter />
+  <AboutLetter photo={about.hero} letterHtml={about.letterHtml} founder={about.founder} />
 
   {/* How did we get here? */}
-  <AboutTimeline />
+  <AboutTimeline milestones={about.milestones} />
 
   {/* Five things we don't compromise on */}
-  <AboutValues />
+  <AboutValues values={about.values} photo={about.valuesImage} />
 
   {/* The people who set the tempo, and the Chorus */}
-  <AboutTeam />
+  <AboutTeam leaders={about.leaders} chorus={about.chorus} />
 
   {/* One Chorus, six cities */}
   <AboutCities />

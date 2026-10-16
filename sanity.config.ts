@@ -13,14 +13,17 @@ import { resolve } from "./src/sanity/presentation.ts";
 import { apiVersion, dataset, projectId } from "./src/sanity/env.ts";
 
 /* The preview the Presentation tool opens. On the site's own /studio it is
-   the same site; the hosted Studio needs the full Vercel preview URL
-   (SANITY_STUDIO_PREVIEW_URL), and falls back to your local dev server. */
+   the same site. The hosted Studio opens the `preview` branch, which GitHub
+   keeps identical to main (.github/workflows/sanity.yml), so it always shows
+   what was last merged. SANITY_STUDIO_PREVIEW_URL overrides it, e.g.
+   http://localhost:4321 to edit against your own dev server. */
+const PREVIEW_BRANCH_URL = "https://lyric-astro-git-preview-fazlu.vercel.app";
 const previewUrl =
   (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
     ?.SANITY_STUDIO_PREVIEW_URL ||
   (typeof window !== "undefined" && window.location.pathname.startsWith("/studio")
     ? window.location.origin
-    : "http://localhost:4321");
+    : PREVIEW_BRANCH_URL);
 
 export default defineConfig({
   name: "lyric",
