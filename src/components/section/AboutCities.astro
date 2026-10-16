@@ -24,14 +24,16 @@ const globe = { cx: 10, cy: 13.3, r: 8.4, meridians: [6.05, 2] };
   class="acities_wrap"
   cardClass="acities_card"
 >
-  <svg slot="layer" class="acities_globe" viewBox="0 0 20 10" aria-hidden="true">
-    <circle class="acities_disc" cx={globe.cx} cy={globe.cy} r={globe.r} />
-    {globe.meridians.map((rx) => <ellipse cx={globe.cx} cy={globe.cy} rx={rx} ry={globe.r} />)}
-  </svg>
 
   <Heading class="acities_title" reveal="lines">One Chorus, six cities.</Heading>
 
   <div slot="aside" class="acities_map">
+  {/* In the aside, not the grid layer: it sits above the cells that light
+      up, so none of them flash through the globe */}
+  <svg class="acities_globe" viewBox="0 0 20 11" aria-hidden="true">
+    <circle class="acities_disc" cx={globe.cx} cy={globe.cy} r={globe.r} />
+    {globe.meridians.map((rx) => <ellipse cx={globe.cx} cy={globe.cy} rx={rx} ry={globe.r} />)}
+  </svg>
   {/* Phones: the same globe, redrawn for the 8-column grid */}
   <svg class="acities_globe-m" viewBox="0 0 8 8.3" preserveAspectRatio="none" aria-hidden="true">
     <circle class="acities_disc" cx="4" cy="7.93" r="6" />
