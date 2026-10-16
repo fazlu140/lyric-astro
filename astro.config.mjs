@@ -22,6 +22,7 @@ const visualEditing = Boolean(projectId) && env.SANITY_VISUAL_EDITING === "true"
    package.json instead ("css is not exported by …/package.json"). This
    plugin corrects those aliases after @sanity/astro adds them. */
 const require = createRequire(import.meta.url);
+/** @param {string} name */
 const folderOf = (name) => {
   try {
     return dirname(require.resolve(`${name}/package.json`));
@@ -34,6 +35,7 @@ const fixSanityAliases = () => ({
   /* Runs after @sanity/astro has added its aliases: rewrite any that point
      at a package.json to the package's folder */
   enforce: "post",
+  /** @param {import("vite").UserConfig} config */
   config(config) {
     const alias = config.resolve?.alias;
     if (!Array.isArray(alias)) return;

@@ -10,6 +10,7 @@
  */
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
+import { aboutImages, investors, leaders } from "../src/data/about.ts";
 
 const CDN = "https://cdn.prod.website-files.com/6a455ce597623f0a8ccc7577";
 
@@ -135,6 +136,16 @@ const assets = [
     from: `${CDN}/6a54f30ebcdb50dbab620f99_sap.svg`,
     to: "src/assets/logos/integrations/sap.svg",
   },
+  /* About page: the URLs live in src/data/about.ts, which shows them from
+     the CDN until these local copies exist */
+  { from: aboutImages.hero.src, to: "src/assets/images/about/hero.avif" },
+  { from: aboutImages.values.src, to: "src/assets/images/about/values.avif" },
+  { from: aboutImages.signature.src, to: "src/assets/images/about/signature.svg" },
+  ...investors.map((logo) => ({ from: logo.src, to: `src/assets/logos/investors/${logo.file}.svg` })),
+  ...leaders.flatMap((leader) => [
+    { from: leader.photo, to: `src/assets/images/about/team/${leader.file}.avif` },
+    ...(leader.hover ? [{ from: leader.hover, to: `src/assets/images/about/team/${leader.file}-hover.avif` }] : []),
+  ]),
 ];
 
 let failed = 0;

@@ -1,0 +1,311 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Img from "@/components/media/Img.astro";
+import { assetOr } from "@/utils/assets.ts";
+import { aboutImages, values } from "@/data/about.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+const files = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/about/*.{avif,jpg,png,webp}",
+  { eager: true },
+);
+const photo = assetOr(files, "values", aboutImages.values);
+---
+
+{/* Figma 6951:2896: five values as an accordion that plays through on its
+    own (10s each, the line under the open one fills), photo on the right */}
+<Section
+  render={render}
+  theme="light"
+  borders="frame"
+  class="avalues_wrap"
+  containerClass="avalues_layout"
+>
+  <Heading class="avalues_title" reveal="lines">
+    Five things we don’t compromise on.
+  </Heading>
+
+  <div class="avalues_grid">
+    <div class="avalues_panel-wrap" data-animate="fade-up">
+      <ul class="avalues_list" data-avalues>
+        {values.map((value, i) => (
+          <li class:list={["avalues_item", i === 0 && "is-open"]}>
+            <h3 class="avalues_heading">
+              <button
+                class="avalues_toggle"
+                type="button"
+                id={`avalues-toggle-${i}`}
+                aria-expanded={i === 0 ? "true" : "false"}
+                aria-controls={`avalues-panel-${i}`}
+              >
+                <svg class="avalues_icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 21H7a1 1 0 0 1 0-2h10.59L3.3 4.71A1 1 0 0 1 4.7 3.3L19 17.59V7a1 1 0 0 1 2 0v13a1 1 0 0 1-1 1Z" />
+                </svg>
+                {value.title}
+              </button>
+            </h3>
+            <div class="avalues_panel" id={`avalues-panel-${i}`} role="region" aria-labelledby={`avalues-toggle-${i}`}>
+              <div class="avalues_inner">
+                <p class="avalues_text">{value.text}</p>
+              </div>
+            </div>
+            <span class="avalues_line" aria-hidden="true"><span class="avalues_progress"></span></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="avalues_media" data-animate="fade-up" data-animate-delay="0.15">
+      <Img
+        class="avalues_photo"
+        src={photo.src}
+        alt="Lyric's founders together at a Lyric event"
+        width={1172}
+        height={1152}
+        variant="constrained"
+        sizes="(width >= 62rem) 37rem, 100vw"
+      />
+    </div>
+  </div>
+</Section>
+
+<script>
+  import { reducedMotion } from "@/utils/gsap.ts";
+
+  for (const list of document.querySelectorAll<HTMLElement>("[data-avalues]")) {
+    const items = [...list.querySelectorAll<HTMLElement>(".avalues_item")];
+
+    /* The list keeps the height it has with the longest value open, so the
+       section never changes height as it plays through; the spare room
+       sits at the bottom */
+    const desktop = window.matchMedia("(width >= 62rem)");
+    const measure = () => {
+      /* Only beside the photo; stacked on phones it would just leave a gap */
+      if (!desktop.matches) {
+        list.style.minHeight = "";
+        return;
+      }
+      const tallest = Math.max(...items.map((item) => item.querySelector<HTMLElement>(".avalues_inner")!.scrollHeight));
+      const titles = items.reduce(
+        (sum, item) => sum + item.offsetHeight - item.querySelector<HTMLElement>(".avalues_panel")!.offsetHeight,
+        0,
+      );
+      list.style.minHeight = `${titles + tallest}px`;
+    };
+    new ResizeObserver(measure).observe(list);
+    desktop.addEventListener("change", measure);
+
+    const open = (index: number) => {
+      items.forEach((item, i) => {
+        item.classList.toggle("is-open", i === index);
+        item.querySelector(".avalues_toggle")!.setAttribute("aria-expanded", String(i === index));
+      });
+    };
+
+    items.forEach((item, i) => {
+      item.querySelector(".avalues_toggle")!.addEventListener("click", () => open(i));
+      /* Autoplay: when the open one's line has filled, the next one opens */
+      item.querySelector(".avalues_progress")!.addEventListener("animationend", () => {
+        open((i + 1) % items.length);
+      });
+    });
+
+    if (reducedMotion()) continue;
+    list.classList.add("is-auto");
+    /* Plays only while on screen */
+    new IntersectionObserver(([entry]) => list.classList.toggle("is-playing", entry.isIntersecting), {
+      threshold: 0.4,
+    }).observe(list);
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    .avalues_layout {
+      align-items: center;
+      gap: var(--space-8);
+    }
+
+    .avalues_title {
+      max-width: 12em;
+      margin: 0;
+      text-align: center;
+      text-wrap: balance;
+    }
+
+    .avalues_grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-2);
+      width: 100%;
+    }
+
+    .avalues_panel-wrap {
+      padding: var(--space-6) var(--space-4);
+      background-color: var(--grey-10);
+    }
+
+    .avalues_list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .avalues_item {
+      position: relative;
+    }
+
+    .avalues_heading {
+      margin: 0;
+      /* Live: 28px titles, the same grey open or closed; the arrow marks
+         the open one */
+      font-size: clamp(1.25rem, 0.95rem + 1vw, 1.75rem);
+      font-weight: var(--primary-medium);
+      line-height: 1.15;
+    }
+
+    .avalues_toggle {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: var(--space-5) 0;
+      border: 0;
+      background: none;
+      color: var(--grey-600);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: color var(--motion-base) var(--motion-ease-out);
+      &:hover {
+        color: var(--grey-800);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--text);
+        outline-offset: 2px;
+      }
+    }
+
+    .avalues_item:first-child .avalues_toggle {
+      padding-top: 0;
+    }
+
+    /* The arrow only shows on the open one, and pushes the title across */
+    .avalues_icon {
+      flex: none;
+      width: 0;
+      height: 1.5rem;
+      margin-right: 0;
+      fill: currentColor;
+      transition:
+        width 0.5s var(--motion-ease-in-out),
+        margin 0.5s var(--motion-ease-in-out);
+    }
+
+    /* Opens to its own height: a grid row going from 0fr to 1fr */
+    .avalues_panel {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.5s var(--motion-ease-in-out);
+    }
+
+    .avalues_inner {
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .avalues_text {
+      margin: 0;
+      padding-bottom: var(--space-5);
+      color: var(--grey-700);
+      font-size: var(--text-large);
+      line-height: 1.3;
+    }
+
+    .avalues_item.is-open {
+      & .avalues_toggle {
+        padding-bottom: 1.25rem;
+      }
+      & .avalues_icon {
+        width: 1.5rem;
+        margin-right: var(--space-3);
+      }
+      & .avalues_panel {
+        grid-template-rows: 1fr;
+      }
+    }
+
+    .avalues_line {
+      position: relative;
+      display: block;
+      height: var(--border-width);
+      background-color: var(--border);
+    }
+
+    .avalues_progress {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0;
+      background-color: var(--plum-400);
+    }
+
+    /* Autoplay: the open one's line fills over 10s, then the next opens.
+       Pauses off screen, under the mouse and while the keyboard is in it. */
+    .avalues_list.is-auto .is-open .avalues_progress {
+      animation: avalues-progress 10s linear forwards;
+      animation-play-state: paused;
+    }
+
+    .avalues_list.is-auto.is-playing:not(:hover, :has(:focus-visible)) .is-open .avalues_progress {
+      animation-play-state: running;
+    }
+
+    @keyframes avalues-progress {
+      to {
+        width: 100%;
+      }
+    }
+
+    /* Phones: the photo comes first, as on live */
+    .avalues_media {
+      order: -1;
+      aspect-ratio: 3 / 2;
+      overflow: clip;
+    }
+
+    .avalues_photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    @media (width >= 62rem) {
+      .avalues_grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .avalues_panel-wrap {
+        padding: 2.5rem;
+      }
+
+      /* The photo fills whatever height the list sets */
+      .avalues_media {
+        position: relative;
+        order: 0;
+        aspect-ratio: auto;
+      }
+
+      .avalues_photo {
+        position: absolute;
+        inset: 0;
+      }
+    }
+  }
+</style>

@@ -1,0 +1,193 @@
+---
+import GridFrame from "@/components/wrapper/GridFrame.astro";
+import Heading from "@/components/typography/Heading.astro";
+import { cities } from "@/data/about.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+/* Globe lines from Figma 6951:3002, in cells: a circle and two meridians
+   sharing its centre below the grid, so only their tops show. The live site
+   uses a raster image for this. */
+const globe = { cx: 10, cy: 13.3, r: 8.4, meridians: [6.05, 2] };
+---
+
+<GridFrame
+  render={render}
+  theme="dark"
+  rows={10}
+  card={[5, 1, 10, 2]}
+  class="acities_wrap"
+  cardClass="acities_card"
+>
+  <svg slot="layer" class="acities_globe" viewBox="0 0 20 10" aria-hidden="true">
+    <circle cx={globe.cx} cy={globe.cy} r={globe.r} />
+    {globe.meridians.map((rx) => <ellipse cx={globe.cx} cy={globe.cy} rx={rx} ry={globe.r} />)}
+  </svg>
+
+  <Heading class="acities_title" reveal="lines">One Chorus, six cities.</Heading>
+
+  <div slot="aside" class="acities_map">
+  {/* Phones: the same globe, redrawn for the 8-column grid */}
+  <svg class="acities_globe-m" viewBox="0 0 8 8.3" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="4" cy="7.93" r="6" />
+    <ellipse cx="4" cy="7.93" rx="4.4" ry="6" />
+    <ellipse cx="4" cy="7.93" rx="2.6" ry="6" />
+  </svg>
+  <ul class="acities_list" aria-label="Lyric offices" data-animate="fade-up" data-animate-children>
+    {cities.map((city) => (
+      <li class="acities_pin" style={`--_c: ${city.c}; --_r: ${city.r}; --_mx: ${city.m[0]}; --_my: ${city.m[1]}; --_stem: ${city.m[2]}`} data-grid-cover>
+        <span class="acities_name">{city.name}</span>
+        <span class="acities_country text-style-mono">{city.country}</span>
+        <span class="acities_stem" aria-hidden="true"></span>
+      </li>
+    ))}
+  </ul>
+  </div>
+</GridFrame>
+
+<style is:global>
+  @layer components {
+    .acities_title {
+      margin: 0;
+    }
+
+    /* Phones: a slimmer title card, as on live */
+    @media (width < 62rem) {
+      .acities_card .grid-frame_card-inner {
+        padding-block: var(--space-4);
+      }
+    }
+
+    .acities_globe {
+      position: absolute;
+      inset: 0;
+      display: none;
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: var(--grey-700);
+      stroke-width: 0.016;
+      stroke-dasharray: 0.07 0.07;
+    }
+
+    /* Phones and tablets: live's mobile map under the card. Pins size to
+       their text and hang from a stem, centred on their column. */
+    .acities_map {
+      position: relative;
+      height: calc(var(--_cell) * 8.3);
+      margin-top: calc(var(--_cell) * 0.5);
+    }
+
+    .acities_globe-m {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: var(--grey-700);
+      stroke-width: 0.024;
+      stroke-dasharray: 0.09 0.09;
+    }
+
+    .acities_list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .acities_pin {
+      position: absolute;
+      left: calc(var(--_mx) * var(--_cell));
+      top: calc(var(--_my) * var(--_cell));
+      translate: -50% 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.5rem 0.75rem;
+      border: var(--border-width) dashed var(--grey-800);
+      background-color: var(--background);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .acities_name {
+      font-size: clamp(0.9375rem, 0.8rem + 0.6vw, 1.25rem);
+      font-weight: var(--primary-semibold);
+      line-height: 1.3;
+    }
+
+    .acities_country {
+      color: var(--grey-200);
+      font-size: 0.6875rem;
+      font-weight: var(--primary-semibold);
+      text-transform: uppercase;
+    }
+
+    .acities_stem {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: var(--border-width);
+      height: calc(var(--_cell) * var(--_stem));
+      background-color: var(--grey-700);
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 0.3125rem;
+        height: 0.3125rem;
+        margin: -0.15625rem 0 0 -0.15625rem;
+        border-radius: 50%;
+        background-color: var(--grey-600);
+      }
+    }
+
+    /* Desktop: the Figma cells, the big globe in the grid layer */
+    @media (width >= 62rem) {
+      .acities_globe {
+        display: block;
+      }
+
+      .acities_globe-m {
+        display: none;
+      }
+
+      .acities_map {
+        position: absolute;
+        inset: 0;
+        height: auto;
+        margin: 0;
+      }
+
+      .acities_pin {
+        left: calc(var(--_c) * var(--_cell));
+        top: calc(var(--_r) * var(--_cell));
+        translate: none;
+        justify-content: center;
+        width: calc(var(--_cell) * 3);
+        height: calc(var(--_cell) * 1.5);
+        padding: 0;
+      }
+
+      .acities_name {
+        font-weight: var(--primary-medium);
+      }
+
+      .acities_country {
+        font-size: 0.75rem;
+        font-weight: inherit;
+      }
+
+      .acities_stem {
+        height: var(--_cell);
+      }
+    }
+  }
+</style>

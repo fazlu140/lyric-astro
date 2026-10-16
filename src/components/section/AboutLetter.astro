@@ -1,0 +1,188 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Img from "@/components/media/Img.astro";
+import { assetOr } from "@/utils/assets.ts";
+import { aboutImages, founder, letter } from "@/data/about.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+/* The local copies once `npm run fetch-assets` has run, the Webflow CDN until then */
+const files = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/about/*.{avif,jpg,png,webp,svg}",
+  { eager: true },
+);
+const photo = assetOr(files, "hero", aboutImages.hero);
+const signature = assetOr(files, "signature", aboutImages.signature);
+---
+
+{/* Figma 6951:2655, with live's behaviour: the team photo stays put behind
+    the whole section (sticky, one screen tall) while the letter scrolls
+    over it */}
+<Section
+  render={render}
+  theme="light"
+  paddingTop="none"
+  paddingBottom="large"
+  class="aletter_wrap"
+  containerClass="aletter_layout"
+>
+  <div slot="background" class="aletter_media">
+    <div class="aletter_sticky">
+    <Img
+      class="aletter_photo"
+      src={photo.src}
+      alt=""
+      width={1440}
+      height={960}
+      variant="constrained"
+      sizes="100vw"
+      loading="eager"
+      fetchPriority="high"
+    />
+    <div class="aletter_shade"></div>
+    </div>
+  </div>
+
+  <Heading tag="h1" variant="display" class="aletter_title" reveal="lines">
+    What Lyric Actually Is
+  </Heading>
+
+  <article class="aletter_card" aria-label={`A letter from ${founder.name}, ${founder.role}`} data-animate="fade-up" data-animate-delay="0.2">
+    <div class="aletter_text" data-animate="fade-up" data-animate-children>
+      {letter.map((p) => (
+        <p>
+          {p.text}
+          {p.strong && <strong> {p.strong}</strong>}
+        </p>
+      ))}
+    </div>
+
+    <footer class="aletter_sign">
+      <Img
+        class="aletter_signature"
+        src={signature.src}
+        alt={founder.name}
+        width={signature.width}
+        height={signature.height}
+        transparent
+      />
+      <p class="aletter_byline text-style-mono">
+        <span>{founder.name}</span>
+        <span class="aletter_divider" aria-hidden="true"></span>
+        <span>{founder.role}</span>
+      </p>
+    </footer>
+  </article>
+</Section>
+
+<style is:global>
+  @layer components {
+    .aletter_wrap {
+      overflow: clip;
+    }
+
+    .section > .aletter_media {
+      background-color: var(--black);
+    }
+
+    .aletter_sticky {
+      position: sticky;
+      top: 0;
+      height: 100svh;
+      overflow: clip;
+    }
+
+    .aletter_photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 30%;
+      filter: grayscale(1);
+    }
+
+    /* Darkens the photo a little, so the white title always reads */
+    .aletter_shade {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgb(13 13 13 / 0.35), rgb(13 13 13 / 0.2) 50%, rgb(13 13 13 / 0.4));
+    }
+
+    .aletter_layout {
+      align-items: center;
+      gap: var(--space-7);
+      padding-top: clamp(8rem, 30svh, 20rem);
+    }
+
+    .aletter_title {
+      margin: 0;
+      color: var(--white);
+      text-align: center;
+      text-wrap: balance;
+    }
+
+    .aletter_card {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-7);
+      width: 100%;
+      max-width: 65.5rem;
+      padding: clamp(1.25rem, 5.5vw, 5rem);
+      border: var(--border-width) solid rgb(33 33 33 / 0.12);
+      background-color: var(--grey-50);
+      box-shadow:
+        16px 26px 94px -1.8px rgb(0 0 0 / 0.04),
+        6.6px 10px 37px -1.45px rgb(0 0 0 / 0.03),
+        3px 4.7px 16px -1px rgb(0 0 0 / 0.02);
+    }
+
+    .aletter_text {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      font-size: var(--text-large);
+      line-height: 1.6;
+      color: var(--grey-700);
+      & p {
+        margin: 0;
+      }
+      & strong {
+        font-weight: var(--primary-medium);
+        color: var(--text);
+      }
+    }
+
+    .aletter_sign {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: var(--space-4);
+    }
+
+    .aletter_signature {
+      width: min(100%, 18.625rem);
+      height: auto;
+    }
+
+    .aletter_byline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.25rem var(--space-2);
+      margin: 0;
+      font-size: var(--text-small);
+      text-transform: uppercase;
+    }
+
+    .aletter_divider {
+      width: var(--border-width);
+      height: 1em;
+      background-color: var(--grey-300);
+    }
+  }
+</style>

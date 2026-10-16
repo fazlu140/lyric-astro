@@ -1,0 +1,291 @@
+---
+import Section from "@/components/wrapper/Section.astro";
+import Heading from "@/components/typography/Heading.astro";
+import Button from "@/components/Button.astro";
+import Img from "@/components/media/Img.astro";
+import { assetOr } from "@/utils/assets.ts";
+import { investors, timeline } from "@/data/about.ts";
+
+type Props = {
+  /** Set to `false` to omit the component. */
+  render?: boolean;
+};
+
+const { render = true } = Astro.props;
+
+const files = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/logos/investors/*.svg",
+  { eager: true },
+);
+const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo.file, logo) }));
+---
+
+{/* Figma 6951:2721: a ruler of years running off the right edge, moved
+    with the arrows, a trackpad or a swipe */}
+<Section
+  render={render}
+  theme="light"
+  paddingTop="medium"
+  paddingBottom="medium"
+  class="atrack_wrap"
+  containerClass="atrack_layout"
+>
+  <div class="atrack_head">
+    <Heading class="atrack_title" reveal="lines">How did we get here?</Heading>
+    <div class="atrack_controls">
+      <Button class="atrack_arrow" variant="arrow" direction="back" label="Earlier" data-atrack-prev disabled />
+      <Button class="atrack_arrow" variant="arrow" label="Later" data-atrack-next />
+    </div>
+  </div>
+
+  <ol class="atrack_list" aria-label="Lyric's story, year by year" tabindex="0" data-atrack data-animate="fade-up" data-animate-children>
+    {timeline.map((item) => (
+      <li class="atrack_item">
+        <div class="atrack_ruler" aria-hidden="true"></div>
+        <p class="atrack_year text-style-mono">{item.year}</p>
+        <Heading tag="h3" variant="h4" class="atrack_item-title">{item.title}</Heading>
+        <p class="atrack_text">{item.text}</p>
+        {item.investors && (
+          <ul class="atrack_logos" aria-label="Investors">
+            {logos.map((logo) => (
+              <li>
+                <Img src={logo.src} alt={logo.name} width={logo.width} height={logo.height} transparent />
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
+    ))}
+  </ol>
+</Section>
+
+<script>
+  for (const list of document.querySelectorAll<HTMLElement>("[data-atrack]")) {
+    const wrap = list.closest<HTMLElement>(".atrack_wrap")!;
+    const prev = wrap.querySelector<HTMLButtonElement>("[data-atrack-prev]")!;
+    const next = wrap.querySelector<HTMLButtonElement>("[data-atrack-next]")!;
+    const step = () => list.querySelector<HTMLElement>(".atrack_item")!.offsetWidth;
+
+    /* Arrows go one year at a time; snapping lines it up */
+    prev.addEventListener("click", () => list.scrollBy({ left: -step(), behavior: "smooth" }));
+    next.addEventListener("click", () => list.scrollBy({ left: step(), behavior: "smooth" }));
+
+    const title = wrap.querySelector<HTMLElement>(".atrack_title")!;
+    const align = () => {
+      const gutter = title.getBoundingClientRect().left - list.getBoundingClientRect().left;
+      list.style.setProperty("--_gutter", `${gutter}px`);
+    };
+    align();
+    new ResizeObserver(align).observe(wrap);
+    const update = () => {
+      prev.disabled = list.scrollLeft <= 4;
+      next.disabled = list.scrollLeft + list.clientWidth >= list.scrollWidth - 4;
+    };
+    list.addEventListener("scroll", update, { passive: true });
+    new ResizeObserver(update).observe(list);
+
+    /* Mouse drag (touch and trackpads scroll natively). Snapping is off
+       while the pointer moves the track; on release the throw carries it
+       on a little and it settles on the nearest year. */
+    let startX = 0;
+    let startLeft = 0;
+    let lastX = 0;
+    let lastT = 0;
+    let velocity = 0;
+    let dragging = false;
+    let moved = false;
+
+    list.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "mouse" || event.button !== 0) return;
+      dragging = true;
+      moved = false;
+      startX = lastX = event.clientX;
+      startLeft = list.scrollLeft;
+      lastT = event.timeStamp;
+      velocity = 0;
+    });
+
+    window.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      const dx = event.clientX - startX;
+      if (!moved && Math.abs(dx) < 4) return;
+      if (!moved) {
+        moved = true;
+        list.classList.add("is-dragging");
+        list.setPointerCapture?.(event.pointerId);
+      }
+      const dt = Math.max(1, event.timeStamp - lastT);
+      velocity = 0.8 * velocity + 0.2 * ((lastX - event.clientX) / dt);
+      lastX = event.clientX;
+      lastT = event.timeStamp;
+      list.scrollLeft = startLeft - dx;
+    });
+
+    const release = () => {
+      if (!dragging) return;
+      dragging = false;
+      if (!moved) return;
+      const width = step();
+      const max = list.scrollWidth - list.clientWidth;
+      const target = Math.round((list.scrollLeft + velocity * 220) / width) * width;
+      list.scrollTo({ left: Math.max(0, Math.min(max, target)), behavior: "smooth" });
+      /* Snapping back on once the glide has finished */
+      const done = () => list.classList.remove("is-dragging");
+      if ("onscrollend" in list) list.addEventListener("scrollend", done, { once: true });
+      else window.setTimeout(done, 600);
+    };
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+  }
+</script>
+
+<style is:global>
+  @layer components {
+    .atrack_wrap {
+      overflow: clip;
+    }
+
+    .atrack_layout {
+      gap: var(--space-8);
+    }
+
+    .atrack_head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: space-between;
+      gap: var(--space-4);
+      width: 100%;
+      padding-inline: var(--content-inset);
+    }
+
+    .atrack_title {
+      margin: 0;
+    }
+
+    .atrack_controls {
+      display: flex;
+      gap: var(--space-3);
+      margin-left: auto;
+    }
+
+    /* Figma: the arrow you can't use yet is outlined, the other filled */
+    .button_wrap.atrack_arrow {
+      width: clamp(2.5rem, 2rem + 1.6vw, 3.5rem);
+      height: clamp(2.5rem, 2rem + 1.6vw, 3.5rem);
+      padding: 0;
+      border-radius: 0;
+      & .button_mark {
+        --_size: 1.25rem;
+      }
+      &:disabled {
+        --button-background: transparent;
+        --button-border: var(--border);
+        --button-text: var(--text);
+        opacity: 1;
+        cursor: default;
+      }
+    }
+
+    /* Runs edge to edge: the first year starts at the content line, and
+       years scrolled past it stay visible on the left, as on live */
+    .atrack_list {
+      /* Where the content line is. The script measures it exactly (a
+         scrollbar makes 100vw wider than the page); this is the fallback. */
+      --_gutter: calc((100vw - min(100vw - var(--site-margin) * 2, var(--max-width-main))) / 2 + var(--content-inset));
+      position: relative;
+      display: flex;
+      width: 100vw;
+      margin: 0 0 0 calc(50% - 50vw);
+      padding: 0 var(--_gutter) var(--space-2);
+      list-style: none;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scroll-padding-left: var(--_gutter);
+      scrollbar-width: none;
+      &::-webkit-scrollbar {
+        display: none;
+      }
+      &:focus-visible {
+        outline: 2px solid var(--text);
+        outline-offset: 4px;
+      }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .atrack_list {
+        cursor: grab;
+      }
+    }
+
+    .atrack_list.is-dragging {
+      scroll-snap-type: none;
+      cursor: grabbing;
+      user-select: none;
+    }
+
+    .atrack_item {
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      width: min(80vw, 24.125rem);
+      padding-right: var(--space-7);
+      scroll-snap-align: start;
+      /* The first record (before Lyric) is greyed out, as on live and in
+         Figma. On the children: the entrance animation sets the item's own
+         opacity. */
+      &:first-child > * {
+        opacity: 0.3;
+      }
+    }
+
+    /* One tall tick where the year starts, eight short ones after it */
+    .atrack_ruler {
+      --_tick: var(--grey-200);
+      align-self: stretch;
+      height: 3.75rem;
+      margin: 0 calc(var(--space-7) * -1) var(--space-8) 0;
+      background:
+        linear-gradient(var(--_tick), var(--_tick)) 0 0 / 1px 100% no-repeat,
+        repeating-linear-gradient(to right, var(--_tick) 0 1px, transparent 1px 2.5rem)
+          2.0625rem 100% / calc(100% - 2.0625rem) 1.25rem no-repeat;
+    }
+
+    .atrack_year {
+      margin: 0 0 var(--space-7);
+      padding: 0.375rem 0.75rem;
+      background-color: var(--grey-50);
+      font-size: var(--text-small);
+    }
+
+    .atrack_item-title {
+      margin: 0 0 var(--space-3);
+      font-size: clamp(1.25rem, 1rem + 0.6vw, 1.5rem);
+      font-weight: var(--primary-medium);
+    }
+
+    .atrack_text {
+      max-width: 20rem;
+      margin: 0;
+      color: var(--grey-700);
+      font-size: var(--text-main);
+    }
+
+    .atrack_logos {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-4);
+      margin: var(--space-5) 0 0;
+      padding: 0;
+      list-style: none;
+      & img {
+        display: block;
+        width: auto;
+        height: 1.25rem;
+      }
+    }
+  }
+</style>

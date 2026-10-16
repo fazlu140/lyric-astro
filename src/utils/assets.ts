@@ -25,3 +25,25 @@ export function sortedAssets(
       src: module.default,
     }));
 }
+
+type Remote = { src: string; width: number; height: number };
+
+/**
+ * The local file named `name` if `npm run fetch-assets` has saved it,
+ * otherwise the remote original. Lets a page ship before its media is in
+ * the repo, with no stand-ins to swap later.
+ */
+export function assetOr(
+  files: Record<string, { default: ImageMetadata }>,
+  name: string,
+  remote: Remote,
+): { src: ImageMetadata | string; width: number; height: number } {
+  const match = Object.entries(files).find(
+    ([path]) => path.split("/").pop()!.replace(/\.\w+$/, "") === name,
+  );
+  if (!match) return remote;
+  const local = match[1].default;
+  /* SVGs import as components; pass their URL instead */
+  const src = local.format === "svg" ? local.src : local;
+  return { src, width: local.width, height: local.height };
+}
