@@ -39,6 +39,10 @@ export default defineConfig({
       previewUrl: {
         initial: previewUrl,
       },
+      /* Any branch preview of this project, and local dev, may be opened in
+         Presentation (type its URL into the address bar), not only the
+         default one. Anything else is blocked. */
+      allowOrigins: ["https://lyric-astro-git-*-fazlu.vercel.app", "http://localhost:*"],
     }),
     /* A playground for GROQ, Sanity's query language. Try queries here
        before putting them in the site. */
