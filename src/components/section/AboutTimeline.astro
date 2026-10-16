@@ -70,7 +70,6 @@ const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo
     prev.addEventListener("click", () => list.scrollBy({ left: -step(), behavior: "smooth" }));
     next.addEventListener("click", () => list.scrollBy({ left: step(), behavior: "smooth" }));
 
-    const items = [...list.querySelectorAll<HTMLElement>(".atrack_item")];
     const title = wrap.querySelector<HTMLElement>(".atrack_title")!;
     const align = () => {
       const gutter = title.getBoundingClientRect().left - list.getBoundingClientRect().left;
@@ -81,9 +80,6 @@ const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo
     const update = () => {
       prev.disabled = list.scrollLeft <= 4;
       next.disabled = list.scrollLeft + list.clientWidth >= list.scrollWidth - 4;
-      /* Years scrolled past the content line stay in view, faded (live) */
-      const line = list.scrollLeft + parseFloat(getComputedStyle(list).paddingLeft) - 8;
-      for (const item of items) item.classList.toggle("is-past", item.offsetLeft < line);
     };
     list.addEventListener("scroll", update, { passive: true });
     new ResizeObserver(update).observe(list);
@@ -192,7 +188,7 @@ const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo
     }
 
     /* Runs edge to edge: the first year starts at the content line, and
-       years scrolled past it stay visible on the left, faded, as on live */
+       years scrolled past it stay visible on the left, as on live */
     .atrack_list {
       /* Where the content line is. The script measures it exactly (a
          scrollbar makes 100vw wider than the page); this is the fallback. */
@@ -237,11 +233,10 @@ const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo
       width: min(80vw, 24.125rem);
       padding-right: var(--space-7);
       scroll-snap-align: start;
-      /* On the children: the entrance animation sets the item's own opacity */
-      & > * {
-        transition: opacity var(--motion-base) var(--motion-ease-out);
-      }
-      &.is-past > * {
+      /* The first record (before Lyric) is greyed out, as on live and in
+         Figma. On the children: the entrance animation sets the item's own
+         opacity. */
+      &:first-child > * {
         opacity: 0.3;
       }
     }
