@@ -327,8 +327,11 @@ const year = new Date().getFullYear();
     }
 
     /* Underline draws in from the left, like the nav */
+    /* fit-content: inside a flex or grid parent the link would stretch, and
+       the underline with it */
     .footer_link {
       position: relative;
+      width: fit-content;
       padding: 0;
       background: none;
       border: 0;
