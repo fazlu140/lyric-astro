@@ -76,6 +76,59 @@ const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo
     };
     list.addEventListener("scroll", update, { passive: true });
     new ResizeObserver(update).observe(list);
+
+    /* Mouse drag (touch and trackpads scroll natively). Snapping is off
+       while the pointer moves the track; on release the throw carries it
+       on a little and it settles on the nearest year. */
+    let startX = 0;
+    let startLeft = 0;
+    let lastX = 0;
+    let lastT = 0;
+    let velocity = 0;
+    let dragging = false;
+    let moved = false;
+
+    list.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "mouse" || event.button !== 0) return;
+      dragging = true;
+      moved = false;
+      startX = lastX = event.clientX;
+      startLeft = list.scrollLeft;
+      lastT = event.timeStamp;
+      velocity = 0;
+    });
+
+    window.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      const dx = event.clientX - startX;
+      if (!moved && Math.abs(dx) < 4) return;
+      if (!moved) {
+        moved = true;
+        list.classList.add("is-dragging");
+        list.setPointerCapture?.(event.pointerId);
+      }
+      const dt = Math.max(1, event.timeStamp - lastT);
+      velocity = 0.8 * velocity + 0.2 * ((lastX - event.clientX) / dt);
+      lastX = event.clientX;
+      lastT = event.timeStamp;
+      list.scrollLeft = startLeft - dx;
+    });
+
+    const release = () => {
+      if (!dragging) return;
+      dragging = false;
+      if (!moved) return;
+      const width = step();
+      const max = list.scrollWidth - list.clientWidth;
+      const target = Math.round((list.scrollLeft + velocity * 220) / width) * width;
+      list.scrollTo({ left: Math.max(0, Math.min(max, target)), behavior: "smooth" });
+      /* Snapping back on once the glide has finished */
+      const done = () => list.classList.remove("is-dragging");
+      if ("onscrollend" in list) list.addEventListener("scrollend", done, { once: true });
+      else window.setTimeout(done, 600);
+    };
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
   }
 </script>
 
@@ -106,12 +159,13 @@ const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo
     .atrack_controls {
       display: flex;
       gap: var(--space-3);
+      margin-left: auto;
     }
 
     /* Figma: the arrow you can't use yet is outlined, the other filled */
     .button_wrap.atrack_arrow {
-      width: 3.5rem;
-      height: 3.5rem;
+      width: clamp(2.5rem, 2rem + 1.6vw, 3.5rem);
+      height: clamp(2.5rem, 2rem + 1.6vw, 3.5rem);
       padding: 0;
       border-radius: 0;
       & .button_mark {
@@ -145,6 +199,18 @@ const logos = investors.map((logo) => ({ name: logo.name, ...assetOr(files, logo
         outline: 2px solid var(--text);
         outline-offset: 4px;
       }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .atrack_list {
+        cursor: grab;
+      }
+    }
+
+    .atrack_list.is-dragging {
+      scroll-snap-type: none;
+      cursor: grabbing;
+      user-select: none;
     }
 
     .atrack_item {

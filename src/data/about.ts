@@ -157,15 +157,16 @@ export const chorus =
 
 /**
  * Offices. `c` and `r` are the pin box's top-left cell on the 20-column
- * desktop grid (Figma 6951:3002, plus Pune from the live site).
+ * desktop grid (Figma 6951:3002, plus Pune from the live site); `m` is the
+ * same on the 8-column phone grid, laid out like live's mobile map.
  */
 export const cities = [
-  { name: "Palo Alto", country: "United States", c: 4, r: 4 },
-  { name: "Amsterdam", country: "Netherlands", c: 8.5, r: 4 },
-  { name: "Bangalore", country: "India", c: 13, r: 4 },
-  { name: "Chicago", country: "United States", c: 4.5, r: 6.5 },
-  { name: "Pune", country: "India", c: 8.5, r: 7 },
-  { name: "Chennai", country: "India", c: 12.5, r: 6.5 },
+  { name: "Palo Alto", country: "United States", c: 4, r: 4, m: [4.75, 0.3] },
+  { name: "Amsterdam", country: "Netherlands", c: 8.5, r: 4, m: [0.15, 4.4] },
+  { name: "Bangalore", country: "India", c: 13, r: 4, m: [2.75, 2.35] },
+  { name: "Chicago", country: "United States", c: 4.5, r: 6.5, m: [0.75, 0.3] },
+  { name: "Pune", country: "India", c: 8.5, r: 7, m: [5.35, 4.4] },
+  { name: "Chennai", country: "India", c: 12.5, r: 6.5, m: [2.75, 4.4] },
 ];
 
 export const careersUrl = "https://jobs.ashbyhq.com/lyric";

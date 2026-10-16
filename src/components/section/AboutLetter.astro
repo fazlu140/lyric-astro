@@ -21,8 +21,9 @@ const photo = assetOr(files, "hero", aboutImages.hero);
 const signature = assetOr(files, "signature", aboutImages.signature);
 ---
 
-{/* Figma 6951:2655: the team photo under the nav, the founder's letter on a
-    card that runs from the photo down onto the page */}
+{/* Figma 6951:2655, with live's behaviour: the team photo stays put behind
+    the whole section (sticky, one screen tall) while the letter scrolls
+    over it */}
 <Section
   render={render}
   theme="light"
@@ -31,7 +32,8 @@ const signature = assetOr(files, "signature", aboutImages.signature);
   class="aletter_wrap"
   containerClass="aletter_layout"
 >
-  <div slot="background" class="aletter_media theme-dark">
+  <div slot="background" class="aletter_media">
+    <div class="aletter_sticky">
     <Img
       class="aletter_photo"
       src={photo.src}
@@ -42,9 +44,9 @@ const signature = assetOr(files, "signature", aboutImages.signature);
       sizes="100vw"
       loading="eager"
       fetchPriority="high"
-      data-aletter-photo
     />
     <div class="aletter_shade"></div>
+    </div>
   </div>
 
   <Heading tag="h1" variant="display" class="aletter_title" reveal="lines">
@@ -79,57 +81,42 @@ const signature = assetOr(files, "signature", aboutImages.signature);
   </article>
 </Section>
 
-<script>
-  import { whenNear } from "@/utils/near.ts";
-  import { gsap, reducedMotion } from "@/utils/gsap.ts";
-
-  /* The photo drifts slower than the page as the letter scrolls over it */
-  const photo = document.querySelector<HTMLElement>("[data-aletter-photo]");
-  if (photo) whenNear(photo, () => {
-    if (reducedMotion()) return;
-    gsap.to(photo, {
-      yPercent: 12,
-      ease: "none",
-      scrollTrigger: { trigger: photo.parentElement, start: "top top", end: "bottom top", scrub: true },
-    });
-  });
-</script>
-
 <style is:global>
   @layer components {
     .aletter_wrap {
-      --_photo-h: clamp(26rem, 66.5vw, 60rem);
       overflow: clip;
     }
 
-    /* The photo only covers the top of the section; the card carries on
-       over the white below it */
     .section > .aletter_media {
-      height: var(--_photo-h);
-      overflow: clip;
       background-color: var(--black);
+    }
+
+    .aletter_sticky {
+      position: sticky;
+      top: 0;
+      height: 100svh;
+      overflow: clip;
     }
 
     .aletter_photo {
       width: 100%;
-      height: 115%;
+      height: 100%;
       object-fit: cover;
       object-position: 50% 30%;
       filter: grayscale(1);
     }
 
-    /* Darkens the photo where the title sits, so white text always reads */
+    /* Darkens the photo a little, so the white title always reads */
     .aletter_shade {
       position: absolute;
       inset: 0;
-      background:
-        linear-gradient(to bottom, rgb(13 13 13 / 0.35), rgb(13 13 13 / 0.15) 40%, rgb(13 13 13 / 0.45));
+      background: linear-gradient(to bottom, rgb(13 13 13 / 0.35), rgb(13 13 13 / 0.2) 50%, rgb(13 13 13 / 0.4));
     }
 
     .aletter_layout {
       align-items: center;
       gap: var(--space-7);
-      padding-top: calc(var(--_photo-h) * 0.4);
+      padding-top: clamp(8rem, 30svh, 20rem);
     }
 
     .aletter_title {
@@ -145,7 +132,7 @@ const signature = assetOr(files, "signature", aboutImages.signature);
       gap: var(--space-7);
       width: 100%;
       max-width: 65.5rem;
-      padding: clamp(1.5rem, 5.5vw, 5rem);
+      padding: clamp(1.25rem, 5.5vw, 5rem);
       border: var(--border-width) solid rgb(33 33 33 / 0.12);
       background-color: var(--grey-50);
       box-shadow:

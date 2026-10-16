@@ -271,8 +271,10 @@ const photo = assetOr(files, "values", aboutImages.values);
       }
     }
 
+    /* Phones: the photo comes first, as on live */
     .avalues_media {
-      aspect-ratio: 1;
+      order: -1;
+      aspect-ratio: 3 / 2;
       overflow: clip;
     }
 
@@ -295,6 +297,7 @@ const photo = assetOr(files, "values", aboutImages.values);
       /* The photo fills whatever height the list sets */
       .avalues_media {
         position: relative;
+        order: 0;
         aspect-ratio: auto;
       }
 
